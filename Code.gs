@@ -1,42 +1,42 @@
 // ============================================================================
-// ⚙️  CONFIGURATION — Paste your own IDs here
+// ⚙️  SINGLE Code.gs — Auth + Submission in ONE spreadsheet
 // ============================================================================
 //
-// 📌 HOW TO USE:
-//    1. Open your Google Sheet → Extensions → Apps Script
-//    2. Delete any default code in Code.gs → Paste this entire file
-//    3. Click "+" next to Files → HTML → Name it "Index" → Paste Index.html
-//    4. Fill in DRIVE_FOLDER_ID below
-//    5. Deploy → New Deployment → Web App → Execute as "Me" → Anyone
-//    6. Copy the Web App URL — that's your live form!
+// 📌 SETUP:
+//    1. Your Google Sheet has TWO tabs:
+//       • "Auth"       → Tab with registration data (Team ID, Email, Secret Code)
+//       • "Submission"  → Tab for storing submissions (starts with headers only)
+//    2. Open this Google Sheet → Extensions → Apps Script
+//    3. Paste this code → Fill in DRIVE_FOLDER_ID below
+//    4. Deploy → New Deployment → Web App → Execute as "Me" → Anyone
+//    5. Copy the Web App URL → paste into index.html as SCRIPT_URL
 //
-// If pasting inside the spreadsheet's own script editor,
-// leave SPREADSHEET_ID as '' (empty) — it auto-detects.
-// If using a standalone script project, paste the full Spreadsheet ID.
 // ============================================================================
-const SPREADSHEET_ID        = '';                                  // Leave empty if bound to spreadsheet
-const REGISTRATION_SHEET    = 'Registrations';                     // Sheet A name (tab name)
-const SUBMISSION_SHEET      = 'Submissions';                       // Sheet B name (tab name)
-const DRIVE_FOLDER_ID       = 'YOUR_DRIVE_FOLDER_ID_HERE';         // Google Drive folder for PDFs
 
-// Column indices (1-based) inside the REGISTRATION sheet
-// Adjust these if your columns are in a different order
-const REG_COL_TEAM_ID       = 1;   // Column A — Team ID
-const REG_COL_EMAIL         = 2;   // Column B — Registered Team Leader Email
-const REG_COL_SECRET        = 3;   // Column C — Team Secret Code
+// 📁 Google Drive folder for uploaded PDFs
+const DRIVE_FOLDER_ID = 'YOUR_DRIVE_FOLDER_ID_HERE';
+
+// Tab names inside THIS spreadsheet
+const AUTH_SHEET_NAME       = 'Auth';        // Tab with registration data
+const SUBMISSION_SHEET_NAME = 'Submission';  // Tab for storing submissions
+
+// Column indices (1-based) inside the "Auth" tab
+// Mapped to your columns: D=LEADER'S EMAIL, Y=TEAM SECRET CODE, Z=TEAM ID
+const COL_TEAM_ID  = 26;  // Column Z — TEAM ID
+const COL_EMAIL    = 4;   // Column D — LEADER'S EMAIL
+const COL_SECRET   = 25;  // Column Y — TEAM SECRET CODE
 
 // ============================================================================
-// 🌐  doGet — Simple status page (UI is hosted on Vercel, not here)
+// 🌐  doGet — Status check
 // ============================================================================
 function doGet() {
   return HtmlService.createHtmlOutput(
-    '<h2 style="font-family:sans-serif;color:#333;">✅ NextGen Buildathon API is running.</h2>' +
-    '<p style="font-family:sans-serif;color:#666;">The submission form UI is hosted separately on Vercel.</p>'
+    '<h2 style="font-family:sans-serif;color:#333;">✅ NextGen Buildathon API is running.</h2>'
   ).setTitle('NextGen Buildathon API');
 }
 
 // ============================================================================
-// 📨  doPost — Handles form submissions with full verification pipeline
+// 📨  doPost — Verifies credentials from "Auth" tab, stores in "Submission" tab
 // ============================================================================
 function doPost(e) {
   // ------------------------------------------------------------------
@@ -51,43 +51,36 @@ function doPost(e) {
 
   const { teamName, teamId, email, domain, secretCode, fileName, fileBase64 } = payload;
 
-  // Basic server-side presence check
   if (!teamName || !teamId || !email || !domain || !secretCode || !fileName || !fileBase64) {
     return _jsonResponse({ success: false, message: 'Error: All fields are required.' });
   }
 
   // ------------------------------------------------------------------
-  // 1. Acquire a script-level lock to prevent race conditions
-  //    (two identical submissions at the same millisecond)
+  // 1. Acquire lock to prevent race conditions
   // ------------------------------------------------------------------
   const lock = LockService.getScriptLock();
   try {
-    lock.waitLock(30000); // wait up to 30 seconds for the lock
+    lock.waitLock(30000);
   } catch (err) {
     return _jsonResponse({
       success: false,
-      message: 'Error: Server is busy processing another submission. Please try again in a few seconds.'
+      message: 'Error: Server is busy. Please try again in a few seconds.'
     });
   }
 
   try {
-    // Auto-detect: if bound to a spreadsheet, use getActive; otherwise openById
-    const ss = SPREADSHEET_ID
-      ? SpreadsheetApp.openById(SPREADSHEET_ID)
-      : SpreadsheetApp.getActiveSpreadsheet();
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // ----------------------------------------------------------------
-    // STEP 3.1 — Anti-Duplication Check
-    // Query the Submissions sheet; reject if Team ID already exists
+    // STEP 1 — Anti-Duplication Check ("Submission" tab)
     // ----------------------------------------------------------------
-    const subSheet  = ss.getSheetByName(SUBMISSION_SHEET);
+    const subSheet = ss.getSheetByName(SUBMISSION_SHEET_NAME);
     if (!subSheet) {
-      return _jsonResponse({ success: false, message: 'Error: Submissions sheet not found. Contact admin.' });
+      return _jsonResponse({ success: false, message: 'Error: Submission tab not found.' });
     }
 
-    const subData   = subSheet.getDataRange().getValues();
-    // Column C (index 2) in Submissions = Team ID
-    for (let i = 1; i < subData.length; i++) {            // skip header row
+    const subData = subSheet.getDataRange().getValues();
+    for (let i = 1; i < subData.length; i++) {
       if (String(subData[i][2]).trim().toLowerCase() === String(teamId).trim().toLowerCase()) {
         return _jsonResponse({
           success: false,
@@ -97,22 +90,22 @@ function doPost(e) {
     }
 
     // ----------------------------------------------------------------
-    // STEP 3.2 — Credential Verification against Registrations sheet
+    // STEP 2 — Credential Verification ("Auth" tab — READ ONLY)
     // ----------------------------------------------------------------
-    const regSheet = ss.getSheetByName(REGISTRATION_SHEET);
-    if (!regSheet) {
-      return _jsonResponse({ success: false, message: 'Error: Registrations sheet not found. Contact admin.' });
+    const authSheet = ss.getSheetByName(AUTH_SHEET_NAME);
+    if (!authSheet) {
+      return _jsonResponse({ success: false, message: 'Error: Auth tab not found.' });
     }
 
-    const regData  = regSheet.getDataRange().getValues();
+    const authData = authSheet.getDataRange().getValues();
     let verified   = false;
 
-    for (let i = 1; i < regData.length; i++) {             // skip header row
-      const rowTeamId = String(regData[i][REG_COL_TEAM_ID - 1]).trim().toLowerCase();
+    for (let i = 1; i < authData.length; i++) {
+      const rowTeamId = String(authData[i][COL_TEAM_ID - 1]).trim().toLowerCase();
+
       if (rowTeamId === String(teamId).trim().toLowerCase()) {
-        // Team ID found — now verify email AND secret code
-        const rowEmail  = String(regData[i][REG_COL_EMAIL - 1]).trim().toLowerCase();
-        const rowSecret = String(regData[i][REG_COL_SECRET - 1]).trim();
+        const rowEmail  = String(authData[i][COL_EMAIL - 1]).trim().toLowerCase();
+        const rowSecret = String(authData[i][COL_SECRET - 1]).trim();
 
         if (
           rowEmail  === String(email).trim().toLowerCase() &&
@@ -120,7 +113,7 @@ function doPost(e) {
         ) {
           verified = true;
         }
-        break; // Team ID is unique; stop after first match
+        break;
       }
     }
 
@@ -132,8 +125,7 @@ function doPost(e) {
     }
 
     // ----------------------------------------------------------------
-    // STEP 3.3 — PDF Upload to Google Drive
-    // Decode base64 → Blob → Save to designated Drive folder
+    // STEP 3 — PDF Upload to Google Drive
     // ----------------------------------------------------------------
     let fileUrl;
     try {
@@ -142,8 +134,6 @@ function doPost(e) {
 
       const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
       const file   = folder.createFile(blob);
-
-      // Make the file viewable via link so judges / admins can access it
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       fileUrl = file.getUrl();
     } catch (uploadErr) {
@@ -154,27 +144,24 @@ function doPost(e) {
     }
 
     // ----------------------------------------------------------------
-    // STEP 3.4 — Append verified submission to the Submissions sheet
-    // Columns: [Timestamp, Team Name, Team ID, Leader Mail, Domain,
-    //            PDF Drive URL, Status]
+    // STEP 4 — Append to "Submission" tab
     // ----------------------------------------------------------------
-    const timestamp = new Date();
     subSheet.appendRow([
-      timestamp,          // A — Timestamp
-      teamName,           // B — Team Name
-      teamId,             // C — Team ID
-      email,              // D — Leader Mail
-      domain,             // E — Domain / Track
-      fileUrl,            // F — PDF Drive URL
-      1                   // G — Status (1 = verified & submitted)
+      new Date(),           // A — Timestamp
+      teamName,             // B — Team Name
+      teamId,               // C — Team ID
+      email,                // D — Leader Mail
+      domain,               // E — Domain / Track
+      fileUrl,              // F — PDF Drive URL
+      1                     // G — Status (1 = verified & submitted)
     ]);
 
     // ----------------------------------------------------------------
-    // STEP 3.5 — Return success
+    // STEP 5 — Return success
     // ----------------------------------------------------------------
     return _jsonResponse({
       success: true,
-      message: 'Success! Your idea has been submitted and verified. 🎉'
+      message: 'Submission successfully completed! 🎉'
     });
 
   } catch (fatalErr) {
@@ -183,7 +170,6 @@ function doPost(e) {
       message: 'Error: An unexpected server error occurred — ' + fatalErr.message
     });
   } finally {
-    // Always release the lock
     lock.releaseLock();
   }
 }
