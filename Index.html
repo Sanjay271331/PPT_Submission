@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="NextGen Buildathon 2026 — Official Idea Submission Portal by The Mind Mesh" />
+  <title>NextGen Buildathon — Idea Submission</title>
+
+  <!-- Google Fonts — Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ================================================================
+       CSS CUSTOM PROPERTIES  (NextGen Buildathon palette)
+       ================================================================ */
+    :root {
+      --bg-deep:          #06080e;
+      --bg-card:          rgba(13, 17, 29, 0.82);
+      --bg-input:         rgba(9, 13, 27, 0.85);
+      --border-subtle:    rgba(255, 255, 255, 0.08);
+      --border-input:     rgba(100, 116, 139, 0.35);
+      --accent-orange:    #e84e1b;
+      --accent-orange-lt: #ff9d5c;
+      --accent-blue:      #3b82f6;
+      --accent-blue-lt:   #60a5fa;
+      --text-primary:     #f1f5f9;
+      --text-secondary:   #94a3b8;
+      --text-muted:       #64748b;
+      --radius-lg:        16px;
+      --radius-md:        12px;
+      --radius-sm:        8px;
+      --font:             'Inter', system-ui, -apple-system, sans-serif;
+      --glow-orange:      0 0 20px rgba(232, 78, 27, 0.35), 0 0 60px rgba(232, 78, 27, 0.10);
+      --glow-blue:        0 0 30px rgba(59, 130, 246, 0.18);
+    }
+
+    /* ================================================================
+       RESET & BASE
+       ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      font-size: 16px;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Ambient background glows */
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(120px);
+      z-index: 0;
+    }
+    body::before {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(232, 78, 27, 0.12) 0%, transparent 70%);
+      top: -15%; left: -10%;
+    }
+    body::after {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.10) 0%, transparent 70%);
+      bottom: -10%; right: -8%;
+    }
+
+    /* ================================================================
+       FORM CONTAINER — Glassmorphism card
+       ================================================================ */
+    .form-wrapper {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 560px;
+      background: var(--bg-card);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 2.75rem 2.25rem 2.25rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), var(--glow-blue);
+      animation: fadeSlideUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(32px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ================================================================
+       HEADER / BRANDING
+       ================================================================ */
+    .form-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .form-header .presents {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+    .form-header h1 {
+      font-size: 1.55rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, var(--accent-orange-lt), var(--accent-orange));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.3;
+    }
+    .form-header .subtitle {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      font-weight: 400;
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-orange), transparent);
+      opacity: 0.3;
+      margin-bottom: 2rem;
+    }
+
+    /* ================================================================
+       FORM FIELDS
+       ================================================================ */
+    .field-group {
+      margin-bottom: 1.35rem;
+    }
+    .field-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 0.45rem;
+    }
+    .field-group label .required {
+      color: var(--accent-orange);
+      margin-left: 2px;
+    }
+
+    .field-group input,
+    .field-group select {
+      width: 100%;
+      padding: 0.72rem 1rem;
+      font-family: var(--font);
+      font-size: 0.88rem;
+      font-weight: 400;
+      color: var(--text-primary);
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      border-radius: var(--radius-md);
+      outline: none;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .field-group input::placeholder {
+      color: var(--text-muted);
+      font-weight: 300;
+    }
+    .field-group input:focus,
+    .field-group select:focus {
+      border-color: var(--accent-orange);
+      box-shadow: var(--glow-orange);
+      background: rgba(13, 17, 29, 0.95);
+    }
+
+    /* Select dropdown arrow */
+    .select-wrap {
+      position: relative;
+    }
+    .select-wrap::after {
+      content: '▾';
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 1rem;
+      pointer-events: none;
+    }
+    .field-group select {
+      cursor: pointer;
+      padding-right: 2.4rem;
+    }
+    .field-group select option {
+      background: #0d111d;
+      color: var(--text-primary);
+    }
+
+    /* File input custom styling */
+    .file-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .file-input-wrap input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      z-index: 2;
+    }
+    .file-input-label {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      width: 100%;
+      padding: 0.72rem 1rem;
+      background: var(--bg-input);
+      border: 1px dashed var(--border-input);
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 400;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+      cursor: pointer;
+    }
+    .file-input-label .icon {
+      font-size: 1.15rem;
+    }
+    .file-input-wrap:hover .file-input-label,
+    .file-input-wrap:focus-within .file-input-label {
+      border-color: var(--accent-orange);
+      box-shadow: var(--glow-orange);
+      color: var(--text-secondary);
+    }
+    .file-input-label.has-file {
+      border-style: solid;
+      color: var(--accent-orange-lt);
+      border-color: rgba(232, 78, 27, 0.4);
+    }
+    .file-hint {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    /* ================================================================
+       SUBMIT BUTTON
+       ================================================================ */
+    .submit-btn {
+      width: 100%;
+      margin-top: 0.75rem;
+      padding: 0.85rem 1rem;
+      font-family: var(--font);
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent-orange), #c0390b);
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+    }
+    .submit-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(232, 78, 27, 0.45);
+    }
+    .submit-btn:hover::before { opacity: 1; }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+    .submit-btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ================================================================
+       LOADING SPINNER (shown during submission)
+       ================================================================ */
+    .spinner-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(6, 8, 14, 0.80);
+      backdrop-filter: blur(6px);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+    .spinner-overlay.active { display: flex; }
+
+    .spinner {
+      width: 52px; height: 52px;
+      border: 3px solid rgba(255, 255, 255, 0.08);
+      border-top-color: var(--accent-orange);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .spinner-text {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.08em;
+      font-weight: 500;
+    }
+
+    /* ================================================================
+       TOAST NOTIFICATIONS
+       ================================================================ */
+    .toast-container {
+      position: fixed;
+      top: 1.5rem;
+      right: 1.5rem;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .toast {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      min-width: 320px;
+      max-width: 420px;
+      padding: 1rem 1.15rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: var(--text-primary);
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      animation: toastIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+    .toast.success { border-left: 3px solid #22c55e; }
+    .toast.error   { border-left: 3px solid #ef4444; }
+    .toast .toast-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+    .toast.fade-out { animation: toastOut 0.35s ease both; }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes toastOut {
+      from { opacity: 1; transform: translateX(0); }
+      to   { opacity: 0; transform: translateX(40px); }
+    }
+
+    /* ================================================================
+       SUCCESS STATE — Replaces form after successful submission
+       ================================================================ */
+    .success-state {
+      display: none;
+      text-align: center;
+      padding: 2rem 0;
+      animation: fadeSlideUp 0.6s ease both;
+    }
+    .success-state.active { display: block; }
+    .success-state .check-icon {
+      width: 72px; height: 72px;
+      margin: 0 auto 1.25rem;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+      border: 2px solid rgba(34, 197, 94, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      animation: popIn 0.5s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    @keyframes popIn {
+      from { transform: scale(0); }
+      to   { transform: scale(1); }
+    }
+    .success-state h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #22c55e;
+      margin-bottom: 0.5rem;
+    }
+    .success-state p {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    .home-btn {
+      display: inline-block;
+      margin-top: 1.5rem;
+      padding: 0.7rem 1.8rem;
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent-orange), #c0390b);
+      border-radius: var(--radius-md);
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+    }
+    .home-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px rgba(232, 78, 27, 0.45);
+    }
+
+    /* ================================================================
+       RESPONSIVE
+       ================================================================ */
+    @media (max-width: 600px) {
+      .form-wrapper {
+        padding: 2rem 1.25rem 1.75rem;
+      }
+      .form-header h1 { font-size: 1.25rem; }
+      .toast { min-width: 260px; max-width: 90vw; }
+      .toast-container { top: 1rem; right: 1rem; left: 1rem; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================================================
+       LOADING SPINNER OVERLAY
+       ============================================================ -->
+  <div class="spinner-overlay" id="spinnerOverlay">
+    <div class="spinner"></div>
+    <span class="spinner-text">Uploading &amp; verifying your submission…</span>
+  </div>
+
+  <!-- ============================================================
+       TOAST CONTAINER
+       ============================================================ -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ============================================================
+       FORM CARD
+       ============================================================ -->
+  <div class="form-wrapper">
+    <header class="form-header">
+      <p class="presents">The Mind Mesh — Presents</p>
+      <h1>NextGen Build-A-Thon 2026</h1>
+      <p class="subtitle">Idea Submission Portal • Chapter 02</p>
+    </header>
+    <div class="divider"></div>
+
+    <!-- The actual form (hidden on success) -->
+    <form id="submissionForm" autocomplete="off" novalidate>
+
+      <!-- Team Name -->
+      <div class="field-group">
+        <label for="teamName">Team Name <span class="required">*</span></label>
+        <input type="text" id="teamName" name="teamName" placeholder="e.g. CodeCrafters" required />
+      </div>
+
+      <!-- Team ID -->
+      <div class="field-group">
+        <label for="teamId">Team ID <span class="required">*</span></label>
+        <input type="text" id="teamId" name="teamId" placeholder="e.g. NGB-2026-042" required />
+      </div>
+
+      <!-- Email -->
+      <div class="field-group">
+        <label for="email">Registered Team Leader Mail <span class="required">*</span></label>
+        <input type="email" id="email" name="email" placeholder="leader@example.com" required />
+      </div>
+
+      <!-- Domain / Track -->
+      <div class="field-group">
+        <label for="domain">Domain / Track <span class="required">*</span></label>
+        <div class="select-wrap">
+          <select id="domain" name="domain" required>
+            <option value="" disabled selected>— Select your domain —</option>
+            <option value="NextGen">NEXTGEN — Emerging &amp; Futuristic Technologies</option>
+            <option value="AI & Intelligent Systems">ARTIFICIAL INTELLIGENCE &amp; INTELLIGENT SYSTEMS</option>
+            <option value="IoT & Embedded Systems">IOT &amp; EMBEDDED SYSTEMS</option>
+            <option value="FinTech">FINTECH</option>
+            <option value="Sustainable Innovation">SUSTAINABLE INNOVATION</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Idea Document (PDF only) -->
+      <div class="field-group">
+        <label for="ideaFile">Idea Document (PDF Only) <span class="required">*</span></label>
+        <div class="file-input-wrap">
+          <input type="file" id="ideaFile" name="ideaFile" accept="application/pdf,.pdf" required />
+          <div class="file-input-label" id="fileLabel">
+            <span class="icon">📄</span>
+            <span id="fileName">Choose a PDF file…</span>
+          </div>
+        </div>
+        <p class="file-hint">Max 10 MB • Only <strong>.pdf</strong> files are accepted</p>
+      </div>
+
+      <!-- Team Secret Code -->
+      <div class="field-group">
+        <label for="secretCode">Team Secret Code <span class="required">*</span></label>
+        <input type="password" id="secretCode" name="secretCode" placeholder="Enter your team's secret code" required />
+      </div>
+
+      <!-- Submit -->
+      <button type="submit" class="submit-btn" id="submitBtn">
+        Submit Idea
+      </button>
+    </form>
+
+    <!-- SUCCESS STATE (shown after successful submission) -->
+    <div class="success-state" id="successState">
+      <div class="check-icon">✓</div>
+      <h2>Submission Successfully Completed!</h2>
+      <p>Your idea document has been uploaded and verified. Sit tight and let us wait for the results — good luck to your team! 🚀</p>
+      <a href="https://nextgenbuildathon.vercel.app/" class="home-btn" id="homeBtn">
+        ← Return Back to Home
+      </a>
+    </div>
+  </div>
+
+  <script>
+    // ---------------------------------------------------------------
+    // 🔗 APPS SCRIPT BACKEND URL — Your deployed web app endpoint
+    //    Replace this if you redeploy with a new URL
+    // ---------------------------------------------------------------
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzVeuETn2ub8Dm2J0cc7dTem2AR2ustY7MHcsPF39d0rzgx7_-Mgf_HT3kkbL0AO7tT5A/exec';
+
+    // ---------------------------------------------------------------
+    // DOM References
+    // ---------------------------------------------------------------
+    const form            = document.getElementById('submissionForm');
+    const submitBtn       = document.getElementById('submitBtn');
+    const spinnerOverlay  = document.getElementById('spinnerOverlay');
+    const toastContainer  = document.getElementById('toastContainer');
+    const fileInput       = document.getElementById('ideaFile');
+    const fileLabel       = document.getElementById('fileLabel');
+    const fileNameSpan    = document.getElementById('fileName');
+    const successState    = document.getElementById('successState');
+
+    // Max file size: 10 MB
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+    // ---------------------------------------------------------------
+    // File input — live label update & validation
+    // ---------------------------------------------------------------
+    fileInput.addEventListener('change', function () {
+      if (this.files.length > 0) {
+        const file = this.files[0];
+        fileNameSpan.textContent = file.name;
+        fileLabel.classList.add('has-file');
+      } else {
+        fileNameSpan.textContent = 'Choose a PDF file…';
+        fileLabel.classList.remove('has-file');
+      }
+    });
+
+    // ---------------------------------------------------------------
+    // Toast notification helper
+    // ---------------------------------------------------------------
+    function showToast(message, type = 'error') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      const icon = type === 'success' ? '✅' : '❌';
+      toast.innerHTML = `<span class="toast-icon">${icon}</span><span>${message}</span>`;
+      toastContainer.appendChild(toast);
+
+      // Auto-dismiss after 6 seconds
+      setTimeout(() => {
+        toast.classList.add('fade-out');
+        setTimeout(() => toast.remove(), 400);
+      }, 6000);
+    }
+
+    // ---------------------------------------------------------------
+    // Email format validator
+    // ---------------------------------------------------------------
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    // ---------------------------------------------------------------
+    // Read file as Base64
+    // ---------------------------------------------------------------
+    function readFileAsBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => {
+          // result = "data:application/pdf;base64,XXXX…"
+          const base64 = reader.result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('Failed to read the file.'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ---------------------------------------------------------------
+    // FORM SUBMISSION HANDLER
+    // ---------------------------------------------------------------
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+
+      // Gather values
+      const teamName   = document.getElementById('teamName').value.trim();
+      const teamId     = document.getElementById('teamId').value.trim();
+      const email      = document.getElementById('email').value.trim();
+      const domain     = document.getElementById('domain').value;
+      const secretCode = document.getElementById('secretCode').value.trim();
+      const files      = fileInput.files;
+
+      // ----- FRONTEND VALIDATIONS -----
+
+      if (!teamName || !teamId || !email || !domain || !secretCode) {
+        showToast('Please fill in all required fields.');
+        return;
+      }
+
+      if (!isValidEmail(email)) {
+        showToast('Please enter a valid email address.');
+        return;
+      }
+
+      if (files.length === 0) {
+        showToast('Please upload your idea document (PDF).');
+        return;
+      }
+
+      const file = files[0];
+
+      // Extension check
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext !== 'pdf') {
+        showToast('Only PDF files are allowed. Please upload a .pdf file.');
+        return;
+      }
+
+      // MIME type check
+      if (file.type !== 'application/pdf') {
+        showToast('Invalid file type detected. Only PDF documents are accepted.');
+        return;
+      }
+
+      // Size check
+      if (file.size > MAX_FILE_SIZE) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        showToast(`File is too large (${sizeMB} MB). Maximum allowed is 10 MB.`);
+        return;
+      }
+
+      // ----- BUILD PAYLOAD -----
+      submitBtn.disabled = true;
+      spinnerOverlay.classList.add('active');
+
+      try {
+        const fileBase64 = await readFileAsBase64(file);
+
+        const payload = {
+          teamName,
+          teamId,
+          email,
+          domain,
+          secretCode,
+          fileName: file.name,
+          fileBase64
+        };
+
+        // ----- SEND TO APPS SCRIPT BACKEND -----
+        // Uses 'text/plain' Content-Type to avoid CORS preflight (OPTIONS request)
+        // Google Apps Script doesn't handle OPTIONS, so we MUST avoid triggering one.
+        // The JSON string is still parsed by Code.gs via JSON.parse(e.postData.contents)
+        const response = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload),
+          redirect: 'follow'
+        });
+
+        // Parse the response — GAS redirects to googleusercontent.com which returns JSON
+        let result;
+        try {
+          result = await response.json();
+        } catch {
+          const text = await response.text();
+          try {
+            result = JSON.parse(text);
+          } catch {
+            throw new Error('Unexpected server response. Please try again.');
+          }
+        }
+
+        spinnerOverlay.classList.remove('active');
+
+        if (result.success) {
+          showToast(result.message, 'success');
+          // Show success state, hide form
+          form.style.display = 'none';
+          successState.classList.add('active');
+        } else {
+          showToast(result.message || 'Submission failed. Please try again.');
+          submitBtn.disabled = false;
+        }
+
+      } catch (err) {
+        spinnerOverlay.classList.remove('active');
+        showToast('Network error: ' + err.message);
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
+
