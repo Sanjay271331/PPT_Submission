@@ -21,7 +21,7 @@
 //    - Step 1: Check TEAM ID (Column Z, Col 26) sequentially to find the unique team row.
 //    - Step 2: Check TEAM SECRET CODE (Column Y, Col 25) in that exact row.
 //    - Step 3: Check GMAIL / LEADER EMAIL (Column D, Col 4) in that exact row.
-//    - Step 4: Check DOMAIN NUMBER in that exact row (compares domain number e.g. 1, 2, 3, 4, 5).
+//    - Step 4: Check DOMAIN NUMBER (Column U, Col 21) in that exact row (compares domain number e.g. 1, 2, 3, 4, 5).
 //    * Applied to BOTH Initial Submission and Resubmission!
 //
 // 🔄 RESUBMISSION LOGIC:
@@ -41,11 +41,24 @@ const SUBMISSION_SHEET_NAME = 'Submission';  // Tab for storing & verifying subm
 const CONFIG_SHEET_NAME     = 'Config';      // Tab for portal configuration & deadline status
 
 // Column indices (1-based) inside the "Auth" tab
-// Set COL_AUTH_DOMAIN = 0 to automatically detect the column by header ("Domain" or "Track")
-const COL_AUTH_DOMAIN  = 0;  // 0 = Auto-detect by header name (or set specific 1-based column number)
+// D = LEADER'S EMAIL (col 4), U = DOMAIN (col 21), Y = TEAM SECRET CODE (col 25), Z = TEAM ID (col 26)
 const COL_AUTH_TEAM_ID = 26; // Column Z — TEAM ID
-const COL_AUTH_EMAIL   = 4;  // Column D — LEADER'S EMAIL
 const COL_AUTH_SECRET  = 25; // Column Y — TEAM SECRET CODE
+const COL_AUTH_EMAIL   = 4;  // Column D — LEADER'S EMAIL
+const COL_AUTH_DOMAIN  = 21; // Column U — DOMAIN
+
+// Standard headers for "Submission" sheet
+const SUBMISSION_HEADERS = [
+  'Timestamp',
+  'Team Name',
+  'Team ID',
+  'Leader Mail',
+  'Domain / Track',
+  'PDF Drive URL',
+  'Team Secret Code',
+  'Resubmission Count',
+  'Status'
+];
 
 // ============================================================================
 // 🌐  doGet — Status check (Deadline) & Diagnostics
@@ -153,6 +166,7 @@ function doPost(e) {
 
     // ----------------------------------------------------------------
     // STEP 2 — Sequential Authentication in "Auth" Tab (Single Row Check)
+    // Mandatory for BOTH initial submission and resubmission:
     // 1) Team ID (first check — finds the unique row)
     // 2) Team Secret Code (verified in that exact row)
     // 3) Gmail / Leader Email (verified in that exact row)
@@ -182,7 +196,7 @@ function doPost(e) {
     // ================================================================
     // BRANCH A: RESUBMISSION FLOW
     // 1. Recheck in "Submission" sheet: must already exist!
-    // 2. Recheck submission record details (including domain number).
+    // 2. Recheck submission record details (email, domain number).
     // 3. If exists, THEN ONLY replace PPT Drive URL, increment resubmission count.
     // ================================================================
     if (isResubmit) {
@@ -207,12 +221,8 @@ function doPost(e) {
         });
       }
 
-      // Recheck details stored in the existing Submission record
-      const subEmail  = String(existingSubRowData[colMap.email - 1]).trim().toLowerCase();
-      const subSecret = colMap.secret ? String(existingSubRowData[colMap.secret - 1]).trim() : '';
-      const subDomain = colMap.domain ? String(existingSubRowData[colMap.domain - 1]).trim() : '';
-
       // Recheck Email in submission sheet
+      const subEmail = String(existingSubRowData[colMap.email - 1]).trim().toLowerCase();
       if (subEmail !== String(email).trim().toLowerCase()) {
         return _jsonResponse({
           success: false,
@@ -220,15 +230,8 @@ function doPost(e) {
         });
       }
 
-      // Recheck Secret Code in submission sheet (if previously stored)
-      if (subSecret !== '' && subSecret !== String(secretCode).trim()) {
-        return _jsonResponse({
-          success: false,
-          message: 'Error: Secret Code does not match your previous submission record.'
-        });
-      }
-
-      // Recheck Domain Number in submission sheet
+      // Recheck Domain Number in submission sheet (if previously stored)
+      const subDomain = colMap.domain ? String(existingSubRowData[colMap.domain - 1]).trim() : '';
       if (subDomain !== '' && !_isDomainMatch(domain, subDomain)) {
         const enteredNum = _extractDomainNumber(domain);
         const storedNum  = _extractDomainNumber(subDomain);
@@ -311,7 +314,7 @@ function doPost(e) {
     }
 
     // Append to "Submission" tab — showing ALL entered credentials
-    const totalCols = Math.max(subSheet.getLastColumn(), 9);
+    const totalCols = Math.max(subSheet.getLastColumn(), SUBMISSION_HEADERS.length);
     const newRow = [];
 
     for (let c = 1; c <= totalCols; c++) {
@@ -320,8 +323,8 @@ function doPost(e) {
       else if (c === colMap.teamId) newRow.push(teamId);
       else if (c === colMap.email) newRow.push(email);
       else if (c === colMap.domain) newRow.push(domainFormatted);
-      else if (c === colMap.secret) newRow.push(secretCode);
       else if (c === colMap.pdf) newRow.push(fileUrl);
+      else if (c === colMap.secret) newRow.push(secretCode);
       else if (c === colMap.resubmissionCount) newRow.push(0); // 0 initial resubmissions
       else if (c === colMap.status) newRow.push(1);
       else newRow.push('');
@@ -352,17 +355,23 @@ function _extractDomainNumber(val) {
   if (val === null || val === undefined) return null;
   const s = String(val).trim();
 
-  // If there's an explicit digit in string, e.g. "1", "Domain 1", "Track 2", "#3"
-  const match = s.match(/(?:domain|track)?\s*#?\s*(\d+)/i) || s.match(/\b(\d+)\b/) || s.match(/(\d+)/);
-  if (match) {
-    return parseInt(match[1], 10);
+  // Match "Domain 3: IOT and Embedded System", "Domain 3", "Domain: 3", "Domain - 3"
+  const domainPrefixMatch = s.match(/domain\s*[:\s#\-]*\s*(\d+)/i) || s.match(/track\s*[:\s#\-]*\s*(\d+)/i);
+  if (domainPrefixMatch) {
+    return parseInt(domainPrefixMatch[1], 10);
   }
 
-  // Fallback by keyword if pure text is passed
+  // Standalone number or leading number like "3", "3.", "#3"
+  const digitMatch = s.match(/\b(\d+)\b/) || s.match(/(\d+)/);
+  if (digitMatch) {
+    return parseInt(digitMatch[1], 10);
+  }
+
+  // Fallback by order of domain in dropdown (1 to 5)
   const lower = s.toLowerCase();
   if (lower.includes('nextgen') || lower.includes('emerging') || lower.includes('futuristic')) return 1;
   if (lower.includes('ai') || lower.includes('artificial') || lower.includes('intelligent')) return 2;
-  if (lower.includes('iot') || lower.includes('embedded') || lower.includes('internet of things')) return 3;
+  if (lower.includes('iot') || lower.includes('embedded')) return 3;
   if (lower.includes('fintech') || lower.includes('finance')) return 4;
   if (lower.includes('sustainable') || lower.includes('sustainability') || lower.includes('innovation')) return 5;
 
@@ -488,22 +497,11 @@ function _checkSubmissionStatus(ss) {
 // ============================================================================
 function _getOrInitSubmissionSheet(ss) {
   let subSheet = ss.getSheetByName(SUBMISSION_SHEET_NAME);
-  const defaultHeaders = [
-    'Timestamp',
-    'Team Name',
-    'Team ID',
-    'Leader Mail',
-    'Domain / Track',
-    'Team Secret Code',
-    'PDF Drive URL',
-    'Resubmission Count',
-    'Status'
-  ];
 
   if (!subSheet) {
     subSheet = ss.insertSheet(SUBMISSION_SHEET_NAME);
-    subSheet.appendRow(defaultHeaders);
-    subSheet.getRange(1, 1, 1, defaultHeaders.length).setFontWeight('bold').setBackground('#f1f5f9');
+    subSheet.appendRow(SUBMISSION_HEADERS);
+    subSheet.getRange(1, 1, 1, SUBMISSION_HEADERS.length).setFontWeight('bold').setBackground('#f1f5f9');
     subSheet.setFrozenRows(1);
 
     return {
@@ -514,32 +512,57 @@ function _getOrInitSubmissionSheet(ss) {
         teamId: 3,
         email: 4,
         domain: 5,
-        secret: 6,
-        pdf: 7,
+        pdf: 6,
+        secret: 7,
         resubmissionCount: 8,
         status: 9
       }
     };
   }
 
-  // If subSheet exists, read row 1 headers and map column indices dynamically
+  // Read current headers in row 1
   const lastCol = Math.max(subSheet.getLastColumn(), 1);
-  const headers = subSheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim());
+  const currentHeaders = subSheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h).trim());
 
+  // If row 1 headers are corrupted, missing, or don't start with Timestamp / contain Team ID, fix them!
+  const hasTeamId = currentHeaders.some(h => h.toLowerCase().includes('team id'));
+  const startsWithTimestamp = currentHeaders[0] && currentHeaders[0].toLowerCase().includes('time');
+
+  if (!hasTeamId || !startsWithTimestamp || currentHeaders.length < 5) {
+    subSheet.getRange(1, 1, 1, SUBMISSION_HEADERS.length).setValues([SUBMISSION_HEADERS]);
+    subSheet.getRange(1, 1, 1, SUBMISSION_HEADERS.length).setFontWeight('bold').setBackground('#f1f5f9');
+    subSheet.setFrozenRows(1);
+    return {
+      sheet: subSheet,
+      colMap: {
+        timestamp: 1,
+        teamName: 2,
+        teamId: 3,
+        email: 4,
+        domain: 5,
+        pdf: 6,
+        secret: 7,
+        resubmissionCount: 8,
+        status: 9
+      }
+    };
+  }
+
+  // Map columns dynamically
   let colMap = {
     timestamp: 0,
     teamName: 0,
     teamId: 0,
     email: 0,
     domain: 0,
-    secret: 0,
     pdf: 0,
+    secret: 0,
     resubmissionCount: 0,
     status: 0
   };
 
-  for (let c = 0; c < headers.length; c++) {
-    const h = headers[c].toLowerCase();
+  for (let c = 0; c < currentHeaders.length; c++) {
+    const h = currentHeaders[c].toLowerCase();
     if (h.includes('team id') || h === 'teamid') colMap.teamId = c + 1;
     else if (h.includes('team name') || h === 'teamname') colMap.teamName = c + 1;
     else if (h.includes('mail') || h.includes('email') || h.includes('gmail')) colMap.email = c + 1;
@@ -558,45 +581,11 @@ function _getOrInitSubmissionSheet(ss) {
   if (!colMap.email)     colMap.email     = 4;
   if (!colMap.domain)    colMap.domain    = 5;
   if (!colMap.pdf)       colMap.pdf       = 6;
-
-  // If 'Team Secret Code' column is missing in row 1, add it dynamically
-  if (!colMap.secret) {
-    const newCol = subSheet.getLastColumn() + 1;
-    subSheet.getRange(1, newCol).setValue('Team Secret Code').setFontWeight('bold');
-    colMap.secret = newCol;
-  }
-
-  // If 'Resubmission Count' column is missing, add it dynamically
-  if (!colMap.resubmissionCount) {
-    const newCol = subSheet.getLastColumn() + 1;
-    subSheet.getRange(1, newCol).setValue('Resubmission Count').setFontWeight('bold');
-    colMap.resubmissionCount = newCol;
-  }
-
-  // If 'Status' column is missing, add it
-  if (!colMap.status) {
-    colMap.status = subSheet.getLastColumn() + 1;
-    subSheet.getRange(1, colMap.status).setValue('Status').setFontWeight('bold');
-  }
+  if (!colMap.secret)    colMap.secret    = 7;
+  if (!colMap.resubmissionCount) colMap.resubmissionCount = 8;
+  if (!colMap.status)    colMap.status    = 9;
 
   return { sheet: subSheet, colMap: colMap };
-}
-
-// ============================================================================
-// 🔍 Helper — Find Column Index by Header Keyword in Auth sheet
-// ============================================================================
-function _findAuthColumnByHeader(authSheet, keywords) {
-  const lastCol = Math.max(authSheet.getLastColumn(), 1);
-  const headers = authSheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  for (let c = 0; c < headers.length; c++) {
-    const h = String(headers[c]).trim().toLowerCase();
-    for (let k = 0; k < keywords.length; k++) {
-      if (h.includes(keywords[k])) {
-        return c + 1; // 1-based index
-      }
-    }
-  }
-  return 0; // Not found
 }
 
 // ============================================================================
@@ -616,15 +605,9 @@ function _verifyAuthCredentials(ss, teamId, email, secretCode, domain) {
     return { verified: false, message: 'Error: Registration Auth sheet tab not found.' };
   }
 
-  // Determine Domain column index (COL_AUTH_DOMAIN or auto-detect by header)
-  let domainCol = COL_AUTH_DOMAIN;
-  if (!domainCol || domainCol <= 0) {
-    domainCol = _findAuthColumnByHeader(authSheet, ['domain', 'track', 'category', 'theme', 'stream', 'problem']);
-  }
-
   const authData = authSheet.getDataRange().getValues();
 
-  // 1. FIRST: Check Team ID sequentially to find the matching row
+  // 1. FIRST: Check Team ID sequentially to find the matching row (Column Z, Col 26)
   let teamRowIndex = -1;
   let teamRowData  = null;
 
@@ -646,7 +629,7 @@ function _verifyAuthCredentials(ss, teamId, email, secretCode, domain) {
   }
 
   // In that exact single row itself:
-  // 2. SECOND: Check Team Secret Code
+  // 2. SECOND: Check Team Secret Code (Column Y, Col 25)
   const rowSecret = String(teamRowData[COL_AUTH_SECRET - 1]).trim();
   if (rowSecret !== String(secretCode).trim()) {
     return {
@@ -655,7 +638,7 @@ function _verifyAuthCredentials(ss, teamId, email, secretCode, domain) {
     };
   }
 
-  // 3. THIRD: Check Gmail (Leader Email)
+  // 3. THIRD: Check Gmail / Leader Email (Column D, Col 4)
   const rowEmail = String(teamRowData[COL_AUTH_EMAIL - 1]).trim().toLowerCase();
   if (rowEmail !== String(email).trim().toLowerCase()) {
     return {
@@ -664,18 +647,16 @@ function _verifyAuthCredentials(ss, teamId, email, secretCode, domain) {
     };
   }
 
-  // 4. FOURTH: Check Domain strictly by Domain Number
-  if (domainCol > 0 && domainCol <= teamRowData.length) {
-    const rowDomain = String(teamRowData[domainCol - 1]).trim();
-    if (rowDomain !== '' && !_isDomainMatch(domain, rowDomain)) {
-      const enteredNum  = _extractDomainNumber(domain);
-      const expectedNum = _extractDomainNumber(rowDomain);
-      return {
-        verified: false,
-        message: 'Error: Selected Domain (Domain ' + (enteredNum !== null ? enteredNum : domain) +
-                 ') does not match your team\'s registered Domain (Domain ' + (expectedNum !== null ? expectedNum : rowDomain) + ').'
-      };
-    }
+  // 4. FOURTH: Check Domain strictly by Domain Number (Column U, Col 21)
+  const rowDomain = String(teamRowData[COL_AUTH_DOMAIN - 1]).trim();
+  if (rowDomain !== '' && !_isDomainMatch(domain, rowDomain)) {
+    const enteredNum  = _extractDomainNumber(domain);
+    const expectedNum = _extractDomainNumber(rowDomain);
+    return {
+      verified: false,
+      message: 'Error: Selected Domain (Domain ' + (enteredNum !== null ? enteredNum : domain) +
+               ') does not match your team\'s registered Domain (Domain ' + (expectedNum !== null ? expectedNum : rowDomain) + ').'
+    };
   }
 
   return {
