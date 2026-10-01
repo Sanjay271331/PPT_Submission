@@ -395,11 +395,11 @@ function _isDomainMatch(d1, d2) {
 function _formatDomainDisplay(val) {
   const num = _extractDomainNumber(val);
   const names = {
-    1: 'Domain 1 — NEXTGEN',
-    2: 'Domain 2 — AI & Intelligent Systems',
-    3: 'Domain 3 — IoT & Embedded Systems',
-    4: 'Domain 4 — FinTech',
-    5: 'Domain 5 — Sustainable Innovation'
+    1: 'Domain 1: NEXTGEN — Emerging & Futuristic Technologies',
+    2: 'Domain 2: Artificial Intelligence & Intelligent Systems',
+    3: 'Domain 3: IOT and Embedded System',
+    4: 'Domain 4: FinTech',
+    5: 'Domain 5: Sustainable Innovation'
   };
   if (num !== null && names[num]) {
     return names[num];
