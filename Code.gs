@@ -1,5 +1,5 @@
 // ============================================================================
-// ⚙️ SINGLE Code.gs — Auth + Submission + Resubmission + Deadline Control
+// ⚙️ SINGLE Code.gs — Auth + Submission + Resubmission + Domain Number Check + Deadline Control
 // ============================================================================
 //
 // 📌 SETUP INSTRUCTIONS:
@@ -12,21 +12,20 @@
 //    5. Click Deploy → Manage deployments → Edit (pencil icon)
 //       → Version: "New version" → Click "Deploy".
 //
-// 🛑 SUBMISSION DEADLINE LOGIC (100% ACTIVE):
-//    - The script checks the "Config" tab (or a column named "Submission Status" in Auth/Submission).
+// 🛑 SUBMISSION DEADLINE LOGIC:
+//    - The script checks the "Config" tab (or "Submission Status" column).
 //    - Admin enters 1 (Open) or 0 (Closed).
-//    - When set to 0, the portal shows "Submission deadline has closed" and rejects
-//      both new submissions and resubmissions!
+//    - When set to 0, both initial submissions and resubmissions are rejected!
 //
 // 🔑 SEQUENTIAL AUTHENTICATION (Single Row in "Auth" Tab):
 //    - Step 1: Check TEAM ID (Column Z, Col 26) sequentially to find the unique team row.
 //    - Step 2: Check TEAM SECRET CODE (Column Y, Col 25) in that exact row.
 //    - Step 3: Check GMAIL / LEADER EMAIL (Column D, Col 4) in that exact row.
-//    - Step 4: Check DOMAIN / TRACK in that exact row.
+//    - Step 4: Check DOMAIN NUMBER in that exact row (compares domain number e.g. 1, 2, 3, 4, 5).
 //    * Applied to BOTH Initial Submission and Resubmission!
 //
 // 🔄 RESUBMISSION LOGIC:
-//    1. Authenticates against the "Auth" tab sequentially (Team ID -> Secret -> Gmail -> Domain).
+//    1. Authenticates against "Auth" tab sequentially (Team ID -> Secret -> Gmail -> Domain Number).
 //    2. Rechecks the "Submission" sheet: confirms previous submission exists for this team.
 //    3. If exists, THEN ONLY replaces the PPT file link (PDF URL), updates the timestamp,
 //       and increments the Resubmission Count (+1).
@@ -142,7 +141,6 @@ function doPost(e) {
 
     // ----------------------------------------------------------------
     // STEP 1 — Check Submission Status (DEADLINE CONTROL)
-    // If status is 0, reject immediately!
     // ----------------------------------------------------------------
     const currentStatus = _checkSubmissionStatus(ss);
     if (currentStatus === 0) {
@@ -155,11 +153,10 @@ function doPost(e) {
 
     // ----------------------------------------------------------------
     // STEP 2 — Sequential Authentication in "Auth" Tab (Single Row Check)
-    // Mandatory for BOTH initial submission and resubmission:
     // 1) Team ID (first check — finds the unique row)
     // 2) Team Secret Code (verified in that exact row)
     // 3) Gmail / Leader Email (verified in that exact row)
-    // 4) Domain / Track (verified in that exact row)
+    // 4) Domain Number (compares domain number e.g. 1, 2, 3, 4, 5)
     // ----------------------------------------------------------------
     const authResult = _verifyAuthCredentials(ss, teamId, email, secretCode, domain);
     if (!authResult.verified) {
@@ -179,10 +176,13 @@ function doPost(e) {
     // Read existing submissions
     const subData = subSheet.getDataRange().getValues();
 
+    // Format domain for clean display in Submission sheet
+    const domainFormatted = _formatDomainDisplay(domain);
+
     // ================================================================
     // BRANCH A: RESUBMISSION FLOW
     // 1. Recheck in "Submission" sheet: must already exist!
-    // 2. Recheck submission record details.
+    // 2. Recheck submission record details (including domain number).
     // 3. If exists, THEN ONLY replace PPT Drive URL, increment resubmission count.
     // ================================================================
     if (isResubmit) {
@@ -228,11 +228,14 @@ function doPost(e) {
         });
       }
 
-      // Recheck Domain in submission sheet
+      // Recheck Domain Number in submission sheet
       if (subDomain !== '' && !_isDomainMatch(domain, subDomain)) {
+        const enteredNum = _extractDomainNumber(domain);
+        const storedNum  = _extractDomainNumber(subDomain);
         return _jsonResponse({
           success: false,
-          message: 'Error: Domain "' + domain + '" does not match the domain in your previous submission record ("' + subDomain + '").'
+          message: 'Error: Selected Domain (Domain ' + (enteredNum !== null ? enteredNum : domain) +
+                   ') does not match your previous submission record (Domain ' + (storedNum !== null ? storedNum : subDomain) + ').'
         });
       }
 
@@ -260,8 +263,8 @@ function doPost(e) {
       if (teamName && colMap.teamName) {
         subSheet.getRange(existingSubRowIndex, colMap.teamName).setValue(teamName);
       }
-      if (domain && colMap.domain) {
-        subSheet.getRange(existingSubRowIndex, colMap.domain).setValue(domain);
+      if (colMap.domain) {
+        subSheet.getRange(existingSubRowIndex, colMap.domain).setValue(domainFormatted);
       }
       if (colMap.secret) {
         subSheet.getRange(existingSubRowIndex, colMap.secret).setValue(secretCode);
@@ -283,9 +286,6 @@ function doPost(e) {
 
     // ================================================================
     // BRANCH B: INITIAL SUBMISSION FLOW
-    // 1. Anti-Duplication Check against Submission sheet
-    // 2. Upload PDF to Google Drive
-    // 3. Append to Submission sheet with all credentials
     // ================================================================
 
     // Anti-Duplication Check: prevent duplicate initial submissions
@@ -319,7 +319,7 @@ function doPost(e) {
       else if (c === colMap.teamName) newRow.push(teamName);
       else if (c === colMap.teamId) newRow.push(teamId);
       else if (c === colMap.email) newRow.push(email);
-      else if (c === colMap.domain) newRow.push(domain);
+      else if (c === colMap.domain) newRow.push(domainFormatted);
       else if (c === colMap.secret) newRow.push(secretCode);
       else if (c === colMap.pdf) newRow.push(fileUrl);
       else if (c === colMap.resubmissionCount) newRow.push(0); // 0 initial resubmissions
@@ -343,6 +343,68 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// ============================================================================
+// 🔢 Helper — Extract Domain Number (e.g. 1, 2, 3, 4, 5)
+// ============================================================================
+function _extractDomainNumber(val) {
+  if (val === null || val === undefined) return null;
+  const s = String(val).trim();
+
+  // If there's an explicit digit in string, e.g. "1", "Domain 1", "Track 2", "#3"
+  const match = s.match(/(?:domain|track)?\s*#?\s*(\d+)/i) || s.match(/\b(\d+)\b/) || s.match(/(\d+)/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+
+  // Fallback by keyword if pure text is passed
+  const lower = s.toLowerCase();
+  if (lower.includes('nextgen') || lower.includes('emerging') || lower.includes('futuristic')) return 1;
+  if (lower.includes('ai') || lower.includes('artificial') || lower.includes('intelligent')) return 2;
+  if (lower.includes('iot') || lower.includes('embedded') || lower.includes('internet of things')) return 3;
+  if (lower.includes('fintech') || lower.includes('finance')) return 4;
+  if (lower.includes('sustainable') || lower.includes('sustainability') || lower.includes('innovation')) return 5;
+
+  return null;
+}
+
+// ============================================================================
+// 🔤 Helper — Strict Domain Number Comparison
+// ============================================================================
+function _isDomainMatch(d1, d2) {
+  if (d1 === null || d1 === undefined || d2 === null || d2 === undefined) return false;
+
+  const num1 = _extractDomainNumber(d1);
+  const num2 = _extractDomainNumber(d2);
+
+  // Compare strictly by domain number!
+  if (num1 !== null && num2 !== null) {
+    return num1 === num2;
+  }
+
+  // Fallback if no digit found: compare normalized strings
+  const s1 = String(d1).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const s2 = String(d2).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  return s1 === s2;
+}
+
+// ============================================================================
+// 🏷️ Helper — Format Domain Display for Sheet
+// ============================================================================
+function _formatDomainDisplay(val) {
+  const num = _extractDomainNumber(val);
+  const names = {
+    1: 'Domain 1 — NEXTGEN',
+    2: 'Domain 2 — AI & Intelligent Systems',
+    3: 'Domain 3 — IoT & Embedded Systems',
+    4: 'Domain 4 — FinTech',
+    5: 'Domain 5 — Sustainable Innovation'
+  };
+  if (num !== null && names[num]) {
+    return names[num];
+  }
+  return String(val || '');
 }
 
 // ============================================================================
@@ -538,22 +600,11 @@ function _findAuthColumnByHeader(authSheet, keywords) {
 }
 
 // ============================================================================
-// 🔤 Helper — Flexible Domain Matching
-// ============================================================================
-function _isDomainMatch(d1, d2) {
-  if (!d1 || !d2) return false;
-  const s1 = String(d1).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-  const s2 = String(d2).trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (!s1 || !s2) return false;
-  return s1 === s2 || s1.includes(s2) || s2.includes(s1);
-}
-
-// ============================================================================
 // 🔑 Helper — Sequential Verification in "Auth" Tab (Single Row)
 // 1. Team ID (Sequential Search) -> finds the single unique team row
 // 2. Secret Code -> verified in that single row
 // 3. Gmail / Leader Email -> verified in that single row
-// 4. Domain / Track -> verified in that single row
+// 4. Domain Number -> strictly verified by domain number in that single row
 // ============================================================================
 function _verifyAuthCredentials(ss, teamId, email, secretCode, domain) {
   let authSheet = ss.getSheetByName(AUTH_SHEET_NAME);
@@ -613,13 +664,16 @@ function _verifyAuthCredentials(ss, teamId, email, secretCode, domain) {
     };
   }
 
-  // 4. FOURTH: Check Domain / Track
+  // 4. FOURTH: Check Domain strictly by Domain Number
   if (domainCol > 0 && domainCol <= teamRowData.length) {
     const rowDomain = String(teamRowData[domainCol - 1]).trim();
     if (rowDomain !== '' && !_isDomainMatch(domain, rowDomain)) {
+      const enteredNum  = _extractDomainNumber(domain);
+      const expectedNum = _extractDomainNumber(rowDomain);
       return {
         verified: false,
-        message: 'Error: Selected domain ("' + domain + '") does not match your team\'s registered domain ("' + rowDomain + '").'
+        message: 'Error: Selected Domain (Domain ' + (enteredNum !== null ? enteredNum : domain) +
+                 ') does not match your team\'s registered Domain (Domain ' + (expectedNum !== null ? expectedNum : rowDomain) + ').'
       };
     }
   }
