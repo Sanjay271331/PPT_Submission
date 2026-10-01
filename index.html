@@ -824,13 +824,8 @@
       const files      = fileInput.files;
 
       // ----- FRONTEND VALIDATIONS -----
-      if (!teamId || !email || !secretCode) {
-        showToast('Please fill in your Team ID, Registered Email, and Secret Code.');
-        return;
-      }
-
-      if (!isResubmit && (!teamName || !domain)) {
-        showToast('Please enter your Team Name and select your Domain.');
+      if (!teamName || !teamId || !email || !secretCode || !domain) {
+        showToast('Please fill in all credentials: Team Name, Team ID, Email, Domain, and Secret Code.');
         return;
       }
 
@@ -923,7 +918,8 @@
 
           // Customize success message
           if (result.isResubmit || isResubmit) {
-            successTitle.textContent   = 'Idea Document Resubmitted Successfully!';
+            const countText = result.resubmissionCount ? ` (Resubmission #${result.resubmissionCount})` : '';
+            successTitle.textContent   = `Idea Document Resubmitted Successfully!${countText}`;
             successMessage.textContent = 'Your idea presentation has been replaced and updated in our submission records. Sit tight and let us wait for the results — good luck to your team! 🚀';
           } else {
             successTitle.textContent   = 'Submission Successfully Completed!';
