@@ -1,5 +1,5 @@
 // ============================================================================
-// ⚙️ SINGLE Code.gs — Auth + Submission + Resubmission + Domain Validation + Deadline Control
+// ⚙️ SINGLE Code.gs — Auth + Submission + Resubmission + Deadline Control
 // ============================================================================
 //
 // 📌 SETUP INSTRUCTIONS:
@@ -12,22 +12,24 @@
 //    5. Click Deploy → Manage deployments → Edit (pencil icon)
 //       → Version: "New version" → Click "Deploy".
 //
-// 🛑 SUBMISSION DEADLINE CONTROL:
-//    - The script automatically creates/checks a "Config" tab with a "Submission Status" column.
-//    - You can only enter 1 (Open) or 0 (Closed).
-//    - Setting it to 0 immediately displays "Submission deadline has closed" on the portal
-//      and blocks both new submissions and resubmissions!
+// 🛑 SUBMISSION DEADLINE LOGIC (100% ACTIVE):
+//    - The script checks the "Config" tab (or a column named "Submission Status" in Auth/Submission).
+//    - Admin enters 1 (Open) or 0 (Closed).
+//    - When set to 0, the portal shows "Submission deadline has closed" and rejects
+//      both new submissions and resubmissions!
 //
-// 📊 CREDENTIALS STORED IN "Submission" TAB:
-//    1. Timestamp
-//    2. Team Name
-//    3. Team ID
-//    4. Leader Mail (Gmail)
-//    5. Domain / Track
-//    6. Team Secret Code
-//    7. PDF Drive URL (PPT Link)
-//    8. Resubmission Count (0 for initial, +1 for each resubmission)
-//    9. Status (1)
+// 🔑 SEQUENTIAL AUTHENTICATION (Single Row in "Auth" Tab):
+//    - Step 1: Check TEAM ID (Column Z, Col 26) sequentially to find the unique team row.
+//    - Step 2: Check TEAM SECRET CODE (Column Y, Col 25) in that exact row.
+//    - Step 3: Check GMAIL / LEADER EMAIL (Column D, Col 4) in that exact row.
+//    - Step 4: Check DOMAIN / TRACK in that exact row.
+//    * Applied to BOTH Initial Submission and Resubmission!
+//
+// 🔄 RESUBMISSION LOGIC:
+//    1. Authenticates against the "Auth" tab sequentially (Team ID -> Secret -> Gmail -> Domain).
+//    2. Rechecks the "Submission" sheet: confirms previous submission exists for this team.
+//    3. If exists, THEN ONLY replaces the PPT file link (PDF URL), updates the timestamp,
+//       and increments the Resubmission Count (+1).
 //
 // ============================================================================
 
@@ -47,14 +49,14 @@ const COL_AUTH_EMAIL   = 4;  // Column D — LEADER'S EMAIL
 const COL_AUTH_SECRET  = 25; // Column Y — TEAM SECRET CODE
 
 // ============================================================================
-// 🌐  doGet — Status check & Deadline check for Frontend
+// 🌐  doGet — Status check (Deadline) & Diagnostics
 // ============================================================================
 function doGet(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const status = _checkSubmissionStatus(ss);
 
-  // Return JSON status if frontend queries ?action=getStatus or ?check=status
+  // Action: getStatus (used by frontend to detect deadline on page load)
   if (e && e.parameter && (e.parameter.action === 'getStatus' || e.parameter.check === 'status')) {
+    const status = _checkSubmissionStatus(ss);
     return _jsonResponse({
       success: true,
       isOpen: status === 1,
@@ -63,7 +65,17 @@ function doGet(e) {
     });
   }
 
-  // Web page status preview
+  // Action: inspectHeaders (developer diagnostic)
+  if (e && e.parameter && e.parameter.action === 'inspectHeaders') {
+    const authSheet = ss.getSheetByName(AUTH_SHEET_NAME) || ss.getSheetByName('Sheet1') || ss.getSheets()[0];
+    const authHeaders = authSheet ? authSheet.getRange(1, 1, 1, Math.max(authSheet.getLastColumn(), 1)).getValues()[0] : [];
+    const subSheet = ss.getSheetByName(SUBMISSION_SHEET_NAME);
+    const subHeaders = subSheet ? subSheet.getRange(1, 1, 1, Math.max(subSheet.getLastColumn(), 1)).getValues()[0] : [];
+    return _jsonResponse({ authHeaders, subHeaders });
+  }
+
+  // Web status page
+  const status = _checkSubmissionStatus(ss);
   const statusBadge = status === 1
     ? '<span style="color:#22c55e;font-weight:bold;background:#dcfce7;padding:4px 10px;border-radius:6px;">OPEN (1)</span>'
     : '<span style="color:#ef4444;font-weight:bold;background:#fee2e2;padding:4px 10px;border-radius:6px;">CLOSED (0) - Deadline Passed</span>';
@@ -104,16 +116,12 @@ function doPost(e) {
 
   const isResubmit = (action === 'resubmit');
 
-  // Validate required inputs — all credentials including domain are strictly required!
-  if (!teamId || !email || !secretCode || !domain || !fileName || !fileBase64) {
+  // Validate required inputs
+  if (!teamName || !teamId || !email || !secretCode || !domain || !fileName || !fileBase64) {
     return _jsonResponse({
       success: false,
-      message: 'Error: All credential fields (Team ID, Email, Secret Code, Domain, and PDF file) are required.'
+      message: 'Error: All fields (Team Name, Team ID, Email, Secret Code, Domain, and PDF file) are required.'
     });
-  }
-
-  if (!isResubmit && !teamName) {
-    return _jsonResponse({ success: false, message: 'Error: Team Name is required for submission.' });
   }
 
   // ------------------------------------------------------------------
@@ -133,7 +141,8 @@ function doPost(e) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     // ----------------------------------------------------------------
-    // STEP 1 — Check Global Submission Status (Deadline Control)
+    // STEP 1 — Check Submission Status (DEADLINE CONTROL)
+    // If status is 0, reject immediately!
     // ----------------------------------------------------------------
     const currentStatus = _checkSubmissionStatus(ss);
     if (currentStatus === 0) {
@@ -145,87 +154,89 @@ function doPost(e) {
     }
 
     // ----------------------------------------------------------------
-    // STEP 2 — Initialize / Map "Submission" Tab
+    // STEP 2 — Sequential Authentication in "Auth" Tab (Single Row Check)
+    // Mandatory for BOTH initial submission and resubmission:
+    // 1) Team ID (first check — finds the unique row)
+    // 2) Team Secret Code (verified in that exact row)
+    // 3) Gmail / Leader Email (verified in that exact row)
+    // 4) Domain / Track (verified in that exact row)
+    // ----------------------------------------------------------------
+    const authResult = _verifyAuthCredentials(ss, teamId, email, secretCode, domain);
+    if (!authResult.verified) {
+      return _jsonResponse({
+        success: false,
+        message: authResult.message || 'Error: Authentication failed against registration records.'
+      });
+    }
+
+    // ----------------------------------------------------------------
+    // STEP 3 — Initialize / Map "Submission" Tab
     // ----------------------------------------------------------------
     const subContext = _getOrInitSubmissionSheet(ss);
     const subSheet   = subContext.sheet;
     const colMap     = subContext.colMap;
 
-    // Read existing submission records
+    // Read existing submissions
     const subData = subSheet.getDataRange().getValues();
 
     // ================================================================
     // BRANCH A: RESUBMISSION FLOW
-    // (Check with "Submission" sheet ONLY; verify Team ID, Email, Secret, Domain;
-    //  replace PPT Drive URL, increment resubmission count)
+    // 1. Recheck in "Submission" sheet: must already exist!
+    // 2. Recheck submission record details.
+    // 3. If exists, THEN ONLY replace PPT Drive URL, increment resubmission count.
     // ================================================================
     if (isResubmit) {
-      let existingRowIndex = -1;
-      let existingRowData  = null;
+      let existingSubRowIndex = -1;
+      let existingSubRowData  = null;
 
-      // Search for existing submission using Team ID
+      // Recheck if submitted or not in the Submission sheet
       for (let i = 1; i < subData.length; i++) {
-        const rowTeamId = String(subData[i][colMap.teamId - 1]).trim().toLowerCase();
-        if (rowTeamId === String(teamId).trim().toLowerCase()) {
-          existingRowIndex = i + 1; // 1-based sheet row index
-          existingRowData  = subData[i];
+        const subTeamId = String(subData[i][colMap.teamId - 1]).trim().toLowerCase();
+        if (subTeamId === String(teamId).trim().toLowerCase()) {
+          existingSubRowIndex = i + 1; // 1-based row index
+          existingSubRowData  = subData[i];
           break;
         }
       }
 
-      // 1. Recheck if submitted or not
-      if (existingRowIndex === -1) {
+      // If team has NOT submitted before, reject resubmission:
+      if (existingSubRowIndex === -1) {
         return _jsonResponse({
           success: false,
           message: 'Error: No previous submission found for Team ID "' + teamId + '". Please use "Submit Idea" first.'
         });
       }
 
-      // 2. Verify with "Submission" sheet ONLY using Team ID, Secret Code, Email, and Domain
-      const storedEmail  = String(existingRowData[colMap.email - 1]).trim().toLowerCase();
-      const storedSecret = colMap.secret ? String(existingRowData[colMap.secret - 1]).trim() : '';
-      const storedDomain = colMap.domain ? String(existingRowData[colMap.domain - 1]).trim() : '';
+      // Recheck details stored in the existing Submission record
+      const subEmail  = String(existingSubRowData[colMap.email - 1]).trim().toLowerCase();
+      const subSecret = colMap.secret ? String(existingSubRowData[colMap.secret - 1]).trim() : '';
+      const subDomain = colMap.domain ? String(existingSubRowData[colMap.domain - 1]).trim() : '';
 
-      const inputEmail   = String(email).trim().toLowerCase();
-      const inputSecret  = String(secretCode).trim();
-
-      // Check Email (Gmail)
-      if (storedEmail !== inputEmail) {
+      // Recheck Email in submission sheet
+      if (subEmail !== String(email).trim().toLowerCase()) {
         return _jsonResponse({
           success: false,
-          message: 'Error: Email does not match the registered leader email for Team ID "' + teamId + '".'
+          message: 'Error: Email does not match the leader email in your previous submission record.'
         });
       }
 
-      // Check Secret Code against submission sheet
-      if (storedSecret !== '') {
-        if (storedSecret !== inputSecret) {
-          return _jsonResponse({
-            success: false,
-            message: 'Error: Invalid Secret Code for Team ID "' + teamId + '". Resubmission denied.'
-          });
-        }
-      } else {
-        // Fallback for legacy rows submitted before Secret Code column was saved:
-        // check with Auth sheet once to backfill
-        const legacyCheck = _verifyAuthCredentials(ss, teamId, email, secretCode, domain);
-        if (!legacyCheck.verified) {
-          return _jsonResponse({
-            success: false,
-            message: legacyCheck.message || ('Error: Verification failed for Team ID "' + teamId + '".')
-          });
-        }
-      }
-
-      // Check Domain / Track: MUST match the domain registered/submitted!
-      if (storedDomain !== '' && !_isDomainMatch(domain, storedDomain)) {
+      // Recheck Secret Code in submission sheet (if previously stored)
+      if (subSecret !== '' && subSecret !== String(secretCode).trim()) {
         return _jsonResponse({
           success: false,
-          message: 'Error: Domain "' + domain + '" does not match your team\'s registered domain ("' + storedDomain + '"). Resubmission rejected.'
+          message: 'Error: Secret Code does not match your previous submission record.'
         });
       }
 
-      // 3. Upload new PDF to Google Drive
+      // Recheck Domain in submission sheet
+      if (subDomain !== '' && !_isDomainMatch(domain, subDomain)) {
+        return _jsonResponse({
+          success: false,
+          message: 'Error: Domain "' + domain + '" does not match the domain in your previous submission record ("' + subDomain + '").'
+        });
+      }
+
+      // Upload replacement PDF to Google Drive
       let fileUrl;
       try {
         fileUrl = _uploadPdfToDrive(fileName, fileBase64);
@@ -236,30 +247,30 @@ function doPost(e) {
         });
       }
 
-      // 4. Increment the number of resubmissions in the Resubmission Count column
+      // Increment the number of resubmissions in the Resubmission Count column
       const currentResubmitCount = colMap.resubmissionCount
-        ? (parseInt(existingRowData[colMap.resubmissionCount - 1], 10) || 0)
+        ? (parseInt(existingSubRowData[colMap.resubmissionCount - 1], 10) || 0)
         : 0;
       const newResubmitCount = currentResubmitCount + 1;
 
-      // 5. Replace PPT in PDF format in that PPT column & update credentials
-      subSheet.getRange(existingRowIndex, colMap.pdf).setValue(fileUrl);
-      subSheet.getRange(existingRowIndex, colMap.timestamp).setValue(new Date());
+      // REPLACE the PPT PDF Drive URL and update credentials in Submission sheet
+      subSheet.getRange(existingSubRowIndex, colMap.pdf).setValue(fileUrl);
+      subSheet.getRange(existingSubRowIndex, colMap.timestamp).setValue(new Date());
 
       if (teamName && colMap.teamName) {
-        subSheet.getRange(existingRowIndex, colMap.teamName).setValue(teamName);
+        subSheet.getRange(existingSubRowIndex, colMap.teamName).setValue(teamName);
       }
       if (domain && colMap.domain) {
-        subSheet.getRange(existingRowIndex, colMap.domain).setValue(domain);
+        subSheet.getRange(existingSubRowIndex, colMap.domain).setValue(domain);
       }
       if (colMap.secret) {
-        subSheet.getRange(existingRowIndex, colMap.secret).setValue(inputSecret);
+        subSheet.getRange(existingSubRowIndex, colMap.secret).setValue(secretCode);
       }
       if (colMap.resubmissionCount) {
-        subSheet.getRange(existingRowIndex, colMap.resubmissionCount).setValue(newResubmitCount);
+        subSheet.getRange(existingSubRowIndex, colMap.resubmissionCount).setValue(newResubmitCount);
       }
       if (colMap.status) {
-        subSheet.getRange(existingRowIndex, colMap.status).setValue(1);
+        subSheet.getRange(existingSubRowIndex, colMap.status).setValue(1);
       }
 
       return _jsonResponse({
@@ -272,13 +283,15 @@ function doPost(e) {
 
     // ================================================================
     // BRANCH B: INITIAL SUBMISSION FLOW
-    // (Anti-duplication check + Auth sheet verification including Domain)
+    // 1. Anti-Duplication Check against Submission sheet
+    // 2. Upload PDF to Google Drive
+    // 3. Append to Submission sheet with all credentials
     // ================================================================
 
-    // 1. Anti-Duplication Check: prevent duplicate initial submissions
+    // Anti-Duplication Check: prevent duplicate initial submissions
     for (let i = 1; i < subData.length; i++) {
-      const rowTeamId = String(subData[i][colMap.teamId - 1]).trim().toLowerCase();
-      if (rowTeamId === String(teamId).trim().toLowerCase()) {
+      const subTeamId = String(subData[i][colMap.teamId - 1]).trim().toLowerCase();
+      if (subTeamId === String(teamId).trim().toLowerCase()) {
         return _jsonResponse({
           success: false,
           message: 'Error: Your team has already submitted an idea. Please use the "Resubmit Idea" button to update your submission.'
@@ -286,16 +299,7 @@ function doPost(e) {
       }
     }
 
-    // 2. Credential Verification against "Auth" tab (Team ID, Email, Secret Code, and Domain)
-    const authResult = _verifyAuthCredentials(ss, teamId, email, secretCode, domain);
-    if (!authResult.verified) {
-      return _jsonResponse({
-        success: false,
-        message: authResult.message || 'Error: Invalid Team ID, Email, Secret Code, or Domain combination.'
-      });
-    }
-
-    // 3. PDF Upload to Google Drive
+    // Upload PDF to Google Drive
     let fileUrl;
     try {
       fileUrl = _uploadPdfToDrive(fileName, fileBase64);
@@ -306,7 +310,7 @@ function doPost(e) {
       });
     }
 
-    // 4. Append to "Submission" tab — showing ALL entered credentials
+    // Append to "Submission" tab — showing ALL entered credentials
     const totalCols = Math.max(subSheet.getLastColumn(), 9);
     const newRow = [];
 
@@ -342,7 +346,7 @@ function doPost(e) {
 }
 
 // ============================================================================
-// 🔒 Helper — Check Submission Status (Deadline Control: 1 or 0)
+// 🔒 Helper — Check Submission Status (DEADLINE CONTROL: 1 or 0)
 // ============================================================================
 function _checkSubmissionStatus(ss) {
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -545,7 +549,11 @@ function _isDomainMatch(d1, d2) {
 }
 
 // ============================================================================
-// 🔑 Helper — Verify Credentials in "Auth" Tab (Read Only)
+// 🔑 Helper — Sequential Verification in "Auth" Tab (Single Row)
+// 1. Team ID (Sequential Search) -> finds the single unique team row
+// 2. Secret Code -> verified in that single row
+// 3. Gmail / Leader Email -> verified in that single row
+// 4. Domain / Track -> verified in that single row
 // ============================================================================
 function _verifyAuthCredentials(ss, teamId, email, secretCode, domain) {
   let authSheet = ss.getSheetByName(AUTH_SHEET_NAME);
@@ -560,52 +568,66 @@ function _verifyAuthCredentials(ss, teamId, email, secretCode, domain) {
   // Determine Domain column index (COL_AUTH_DOMAIN or auto-detect by header)
   let domainCol = COL_AUTH_DOMAIN;
   if (!domainCol || domainCol <= 0) {
-    domainCol = _findAuthColumnByHeader(authSheet, ['domain', 'track', 'category', 'theme', 'problem']);
+    domainCol = _findAuthColumnByHeader(authSheet, ['domain', 'track', 'category', 'theme', 'stream', 'problem']);
   }
 
   const authData = authSheet.getDataRange().getValues();
 
+  // 1. FIRST: Check Team ID sequentially to find the matching row
+  let teamRowIndex = -1;
+  let teamRowData  = null;
+
   for (let i = 1; i < authData.length; i++) {
     const rowTeamId = String(authData[i][COL_AUTH_TEAM_ID - 1]).trim().toLowerCase();
-
     if (rowTeamId === String(teamId).trim().toLowerCase()) {
-      const rowEmail  = String(authData[i][COL_AUTH_EMAIL - 1]).trim().toLowerCase();
-      const rowSecret = String(authData[i][COL_AUTH_SECRET - 1]).trim();
+      teamRowIndex = i + 1;
+      teamRowData  = authData[i];
+      break;
+    }
+  }
 
-      // Check Email
-      if (rowEmail !== String(email).trim().toLowerCase()) {
-        return {
-          verified: false,
-          message: 'Error: Email does not match the registered leader email for Team ID "' + teamId + '".'
-        };
-      }
+  // If Team ID not found in Auth sheet:
+  if (teamRowIndex === -1) {
+    return {
+      verified: false,
+      message: 'Error: Team ID "' + teamId + '" is not registered in our records.'
+    };
+  }
 
-      // Check Secret Code
-      if (rowSecret !== String(secretCode).trim()) {
-        return {
-          verified: false,
-          message: 'Error: Invalid Secret Code for Team ID "' + teamId + '".'
-        };
-      }
+  // In that exact single row itself:
+  // 2. SECOND: Check Team Secret Code
+  const rowSecret = String(teamRowData[COL_AUTH_SECRET - 1]).trim();
+  if (rowSecret !== String(secretCode).trim()) {
+    return {
+      verified: false,
+      message: 'Error: Invalid Secret Code for Team ID "' + teamId + '".'
+    };
+  }
 
-      // Check Domain (if domain column exists in Auth sheet)
-      if (domainCol > 0 && domainCol <= authData[i].length) {
-        const rowDomain = String(authData[i][domainCol - 1]).trim();
-        if (rowDomain !== '' && !_isDomainMatch(domain, rowDomain)) {
-          return {
-            verified: false,
-            message: 'Error: Selected domain ("' + domain + '") does not match your team\'s registered domain ("' + rowDomain + '").'
-          };
-        }
-      }
+  // 3. THIRD: Check Gmail (Leader Email)
+  const rowEmail = String(teamRowData[COL_AUTH_EMAIL - 1]).trim().toLowerCase();
+  if (rowEmail !== String(email).trim().toLowerCase()) {
+    return {
+      verified: false,
+      message: 'Error: Email does not match the registered leader email for Team ID "' + teamId + '".'
+    };
+  }
 
-      return { verified: true };
+  // 4. FOURTH: Check Domain / Track
+  if (domainCol > 0 && domainCol <= teamRowData.length) {
+    const rowDomain = String(teamRowData[domainCol - 1]).trim();
+    if (rowDomain !== '' && !_isDomainMatch(domain, rowDomain)) {
+      return {
+        verified: false,
+        message: 'Error: Selected domain ("' + domain + '") does not match your team\'s registered domain ("' + rowDomain + '").'
+      };
     }
   }
 
   return {
-    verified: false,
-    message: 'Error: Team ID "' + teamId + '" not found in registration records.'
+    verified: true,
+    teamRowIndex: teamRowIndex,
+    teamRowData: teamRowData
   };
 }
 
