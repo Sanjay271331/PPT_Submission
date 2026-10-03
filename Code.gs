@@ -69,11 +69,14 @@ function doGet(e) {
   // Action: getStatus (used by frontend to detect deadline on page load)
   if (e && e.parameter && (e.parameter.action === 'getStatus' || e.parameter.check === 'status')) {
     const status = _checkSubmissionStatus(ss);
+    var statusMsg = 'Submissions are currently open.';
+    if (status === 0) statusMsg = 'Submission deadline has closed.';
+    if (status === 2) statusMsg = 'Submission dates are not yet opened. Please recheck the event flow or contact coordinators for details.';
     return _jsonResponse({
       success: true,
       isOpen: status === 1,
       submissionStatus: status,
-      message: status === 1 ? 'Submissions are currently open.' : 'Submission deadline has closed.'
+      message: statusMsg
     });
   }
 
@@ -88,15 +91,20 @@ function doGet(e) {
 
   // Web status page
   const status = _checkSubmissionStatus(ss);
-  const statusBadge = status === 1
-    ? '<span style="color:#22c55e;font-weight:bold;background:#dcfce7;padding:4px 10px;border-radius:6px;">OPEN (1)</span>'
-    : '<span style="color:#ef4444;font-weight:bold;background:#fee2e2;padding:4px 10px;border-radius:6px;">CLOSED (0) - Deadline Passed</span>';
+  var statusBadge;
+  if (status === 1) {
+    statusBadge = '<span style="color:#22c55e;font-weight:bold;background:#dcfce7;padding:4px 10px;border-radius:6px;">OPEN (1)</span>';
+  } else if (status === 2) {
+    statusBadge = '<span style="color:#f59e0b;font-weight:bold;background:#fef3c7;padding:4px 10px;border-radius:6px;">NOT YET OPENED (2)</span>';
+  } else {
+    statusBadge = '<span style="color:#ef4444;font-weight:bold;background:#fee2e2;padding:4px 10px;border-radius:6px;">CLOSED (0) - Deadline Passed</span>';
+  }
 
   return HtmlService.createHtmlOutput(
     '<div style="font-family:sans-serif;padding:2.5rem;max-width:640px;margin:30px auto;line-height:1.6;color:#1e293b;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.06);">' +
       '<h2 style="color:#0f172a;margin-top:0;">🚀 NextGen Buildathon API</h2>' +
       '<p style="margin:1rem 0;">Current Portal Status: ' + statusBadge + '</p>' +
-      '<p style="color:#64748b;font-size:0.92rem;">To toggle the deadline, open the <strong>' + CONFIG_SHEET_NAME + '</strong> tab in your spreadsheet and change <strong>Submission Status</strong> to <strong>1</strong> (open) or <strong>0</strong> (closed).</p>' +
+      '<p style="color:#64748b;font-size:0.92rem;">To toggle the deadline, open the <strong>' + CONFIG_SHEET_NAME + '</strong> tab in your spreadsheet and change <strong>Submission Status</strong> to <strong>1</strong> (open), <strong>0</strong> (closed), or <strong>2</strong> (not yet opened).</p>' +
     '</div>'
   ).setTitle('NextGen Buildathon API');
 }
@@ -160,7 +168,16 @@ function doPost(e) {
       return _jsonResponse({
         success: false,
         deadlineClosed: true,
+        submissionStatus: 0,
         message: 'Submission deadline has closed. Submissions and resubmissions are no longer accepted.'
+      });
+    }
+    if (currentStatus === 2) {
+      return _jsonResponse({
+        success: false,
+        deadlineClosed: true,
+        submissionStatus: 2,
+        message: 'Submission dates are not yet opened. Please recheck the event flow or contact coordinators for details regarding submission dates.'
       });
     }
 
@@ -369,7 +386,7 @@ function _extractDomainNumber(val) {
 
   // Fallback by order of domain in dropdown (1 to 5)
   const lower = s.toLowerCase();
-  if (lower.includes('nextgen') || lower.includes('emerging') || lower.includes('futuristic')) return 1;
+  if (lower.includes('nextgen') || lower.includes('tomorrow') || lower.includes('building') || lower.includes('emerging') || lower.includes('futuristic')) return 1;
   if (lower.includes('ai') || lower.includes('artificial') || lower.includes('intelligent')) return 2;
   if (lower.includes('iot') || lower.includes('embedded')) return 3;
   if (lower.includes('fintech') || lower.includes('finance')) return 4;
@@ -404,8 +421,8 @@ function _isDomainMatch(d1, d2) {
 function _formatDomainDisplay(val) {
   const num = _extractDomainNumber(val);
   const names = {
-    1: 'Domain 1: NEXTGEN — Emerging & Futuristic Technologies',
-    2: 'Domain 2: Artificial Intelligence & Intelligent Systems',
+    1: 'Domain 1: NextGen — Building Tomorrow, Today',
+    2: 'Domain 2: Artificial Intelligence and Intelligent Systems',
     3: 'Domain 3: IOT and Embedded System',
     4: 'Domain 4: FinTech',
     5: 'Domain 5: Sustainable Innovation'
@@ -417,10 +434,20 @@ function _formatDomainDisplay(val) {
 }
 
 // ============================================================================
-// 🔒 Helper — Check Submission Status (DEADLINE CONTROL: 1 or 0)
+// 🔒 Helper — Check Submission Status (DEADLINE CONTROL: 1, 0, or 2)
+//    1 = Open, 0 = Closed (deadline passed), 2 = Dates not yet opened
 // ============================================================================
 function _checkSubmissionStatus(ss) {
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Internal helper: parse raw cell value into 0, 1, or 2
+  function _parseStatusVal(rawVal) {
+    var s = String(rawVal).trim();
+    if (s === '2') return 2;
+    if (s === '0' || s.toLowerCase() === 'closed' || s.toLowerCase() === 'false') return 0;
+    if (s === '1' || s.toLowerCase() === 'open' || s.toLowerCase() === 'true') return 1;
+    return 1; // default open for any other value
+  }
 
   // 1. Check "Config" or "Settings" tab
   let configSheet = ss.getSheetByName(CONFIG_SHEET_NAME) || ss.getSheetByName('Settings');
@@ -435,8 +462,7 @@ function _checkSubmissionStatus(ss) {
           break;
         }
       }
-      const rawVal = String(data[1][statusCol]).trim();
-      return (rawVal === '0' || rawVal.toLowerCase() === 'closed' || rawVal.toLowerCase() === 'false') ? 0 : 1;
+      return _parseStatusVal(data[1][statusCol]);
     }
   }
 
@@ -449,7 +475,7 @@ function _checkSubmissionStatus(ss) {
       const h = String(headers[c]).trim().toLowerCase();
       if (h === 'submission status' || h === 'submission_status' || h === 'portal status' || h === 'deadline status') {
         const rawVal = String(authSheet.getRange(2, c + 1).getValue()).trim();
-        return (rawVal === '0' || rawVal.toLowerCase() === 'closed' || rawVal.toLowerCase() === 'false') ? 0 : 1;
+        return _parseStatusVal(rawVal);
       }
     }
   }
@@ -463,26 +489,26 @@ function _checkSubmissionStatus(ss) {
       const h = String(headers[c]).trim().toLowerCase();
       if (h === 'submission status' || h === 'submission_status' || h === 'portal status' || h === 'deadline status') {
         const rawVal = String(subSheet.getRange(2, c + 1).getValue()).trim();
-        return (rawVal === '0' || rawVal.toLowerCase() === 'closed' || rawVal.toLowerCase() === 'false') ? 0 : 1;
+        return _parseStatusVal(rawVal);
       }
     }
   }
 
-  // 4. Auto-create Config tab with Data Validation (1 or 0 only) if not found
+  // 4. Auto-create Config tab with Data Validation (0, 1, or 2) if not found
   try {
     configSheet = ss.insertSheet(CONFIG_SHEET_NAME);
     configSheet.appendRow(['Submission Status', 'Instructions']);
-    configSheet.appendRow([1, 'Enter 1 for Open, 0 for Closed (shows "Submission deadline has closed")']);
+    configSheet.appendRow([1, 'Enter 1 for Open, 0 for Closed (deadline passed), 2 for Not Yet Opened (dates pending)']);
 
     // Style header
     configSheet.getRange('A1:B1').setFontWeight('bold').setBackground('#f1f5f9');
     configSheet.getRange('A2').setHorizontalAlignment('center');
 
-    // Data Validation: strictly enforce 1 or 0 only
+    // Data Validation: strictly enforce 0, 1, or 2 only
     const rule = SpreadsheetApp.newDataValidation()
-      .requireValueInList(['1', '0'], true)
+      .requireValueInList(['1', '0', '2'], true)
       .setAllowInvalid(false)
-      .setHelpText('Only 1 (Open) or 0 (Closed) is allowed.')
+      .setHelpText('Enter 1 (Open), 0 (Closed), or 2 (Not Yet Opened).')
       .build();
     configSheet.getRange('A2:A50').setDataValidation(rule);
   } catch (err) {
