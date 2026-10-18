@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,37 +10,44 @@
   <!-- Google Fonts — Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
 
   <style>
     /* ================================================================
        CSS CUSTOM PROPERTIES  (NextGen Buildathon palette)
        ================================================================ */
     :root {
-      --bg-deep:          #06080e;
-      --bg-card:          rgba(13, 17, 29, 0.82);
-      --bg-input:         rgba(9, 13, 27, 0.85);
-      --border-subtle:    rgba(255, 255, 255, 0.08);
-      --border-input:     rgba(100, 116, 139, 0.35);
-      --accent-orange:    #e84e1b;
+      --bg-deep: #06080e;
+      --bg-card: rgba(13, 17, 29, 0.82);
+      --bg-input: rgba(9, 13, 27, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-input: rgba(100, 116, 139, 0.35);
+      --accent-orange: #e84e1b;
       --accent-orange-lt: #ff9d5c;
-      --accent-blue:      #3b82f6;
-      --accent-blue-lt:   #60a5fa;
-      --text-primary:     #f1f5f9;
-      --text-secondary:   #94a3b8;
-      --text-muted:       #64748b;
-      --radius-lg:        16px;
-      --radius-md:        12px;
-      --radius-sm:        8px;
-      --font:             'Inter', system-ui, -apple-system, sans-serif;
-      --glow-orange:      0 0 20px rgba(232, 78, 27, 0.35), 0 0 60px rgba(232, 78, 27, 0.10);
-      --glow-blue:        0 0 30px rgba(59, 130, 246, 0.18);
+      --accent-blue: #3b82f6;
+      --accent-blue-lt: #60a5fa;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --font: 'Inter', system-ui, -apple-system, sans-serif;
+      --glow-orange: 0 0 20px rgba(232, 78, 27, 0.35), 0 0 60px rgba(232, 78, 27, 0.10);
+      --glow-blue: 0 0 30px rgba(59, 130, 246, 0.18);
     }
 
     /* ================================================================
        RESET & BASE
        ================================================================ */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     html {
       font-size: 16px;
@@ -69,15 +77,21 @@
       filter: blur(120px);
       z-index: 0;
     }
+
     body::before {
-      width: 600px; height: 600px;
+      width: 600px;
+      height: 600px;
       background: radial-gradient(circle, rgba(232, 78, 27, 0.12) 0%, transparent 70%);
-      top: -15%; left: -10%;
+      top: -15%;
+      left: -10%;
     }
+
     body::after {
-      width: 500px; height: 500px;
+      width: 500px;
+      height: 500px;
       background: radial-gradient(circle, rgba(59, 130, 246, 0.10) 0%, transparent 70%);
-      bottom: -10%; right: -8%;
+      bottom: -10%;
+      right: -8%;
     }
 
     /* ================================================================
@@ -99,8 +113,15 @@
     }
 
     @keyframes fadeSlideUp {
-      from { opacity: 0; transform: translateY(32px) scale(0.97); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
+      from {
+        opacity: 0;
+        transform: translateY(32px) scale(0.97);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     /* ================================================================
@@ -110,6 +131,7 @@
       text-align: center;
       margin-bottom: 2rem;
     }
+
     .form-header .presents {
       font-size: 0.65rem;
       font-weight: 600;
@@ -118,6 +140,7 @@
       color: var(--text-muted);
       margin-bottom: 0.35rem;
     }
+
     .form-header h1 {
       font-size: 1.55rem;
       font-weight: 800;
@@ -129,6 +152,7 @@
       background-clip: text;
       line-height: 1.3;
     }
+
     .form-header .subtitle {
       font-size: 0.78rem;
       color: var(--text-secondary);
@@ -149,6 +173,7 @@
     .field-group {
       margin-bottom: 1.35rem;
     }
+
     .field-group label {
       display: block;
       font-size: 0.75rem;
@@ -158,6 +183,7 @@
       color: var(--text-secondary);
       margin-bottom: 0.45rem;
     }
+
     .field-group label .required {
       color: var(--accent-orange);
       margin-left: 2px;
@@ -179,10 +205,12 @@
       appearance: none;
       -webkit-appearance: none;
     }
+
     .field-group input::placeholder {
       color: var(--text-muted);
       font-weight: 300;
     }
+
     .field-group input:focus,
     .field-group select:focus {
       border-color: var(--accent-orange);
@@ -194,6 +222,7 @@
     .select-wrap {
       position: relative;
     }
+
     .select-wrap::after {
       content: '▾';
       position: absolute;
@@ -204,10 +233,12 @@
       font-size: 1rem;
       pointer-events: none;
     }
+
     .field-group select {
       cursor: pointer;
       padding-right: 2.4rem;
     }
+
     .field-group select option {
       background: #0d111d;
       color: var(--text-primary);
@@ -220,6 +251,7 @@
       align-items: center;
       gap: 0.75rem;
     }
+
     .file-input-wrap input[type="file"] {
       position: absolute;
       inset: 0;
@@ -227,6 +259,7 @@
       cursor: pointer;
       z-index: 2;
     }
+
     .file-input-label {
       display: flex;
       align-items: center;
@@ -242,20 +275,24 @@
       transition: border-color 0.25s ease, box-shadow 0.25s ease;
       cursor: pointer;
     }
+
     .file-input-label .icon {
       font-size: 1.15rem;
     }
+
     .file-input-wrap:hover .file-input-label,
     .file-input-wrap:focus-within .file-input-label {
       border-color: var(--accent-orange);
       box-shadow: var(--glow-orange);
       color: var(--text-secondary);
     }
+
     .file-input-label.has-file {
       border-style: solid;
       color: var(--accent-orange-lt);
       border-color: rgba(232, 78, 27, 0.4);
     }
+
     .file-hint {
       font-size: 0.68rem;
       color: var(--text-muted);
@@ -293,6 +330,7 @@
       justify-content: center;
       gap: 0.5rem;
     }
+
     .submit-btn::before {
       content: '';
       position: absolute;
@@ -301,12 +339,20 @@
       opacity: 0;
       transition: opacity 0.3s ease;
     }
+
     .submit-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 28px rgba(232, 78, 27, 0.45);
     }
-    .submit-btn:hover::before { opacity: 1; }
-    .submit-btn:active { transform: translateY(0); }
+
+    .submit-btn:hover::before {
+      opacity: 1;
+    }
+
+    .submit-btn:active {
+      transform: translateY(0);
+    }
+
     .submit-btn:disabled {
       opacity: 0.55;
       cursor: not-allowed;
@@ -320,12 +366,14 @@
       text-align: center;
       margin: 0.15rem 0;
     }
+
     .or-divider::before,
     .or-divider::after {
       content: '';
       flex: 1;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
+
     .or-divider span {
       padding: 0 0.85rem;
       font-size: 0.7rem;
@@ -356,6 +404,7 @@
       justify-content: center;
       gap: 0.5rem;
     }
+
     .resubmit-btn:hover {
       background: rgba(37, 99, 235, 0.35);
       border-color: var(--accent-blue-lt);
@@ -363,7 +412,11 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 24px rgba(59, 130, 246, 0.35);
     }
-    .resubmit-btn:active { transform: translateY(0); }
+
+    .resubmit-btn:active {
+      transform: translateY(0);
+    }
+
     .resubmit-btn:disabled {
       opacity: 0.55;
       cursor: not-allowed;
@@ -378,6 +431,7 @@
       margin-top: 0.65rem;
       line-height: 1.5;
     }
+
     .buttons-hint strong {
       color: var(--text-secondary);
     }
@@ -397,16 +451,25 @@
       flex-direction: column;
       gap: 1.2rem;
     }
-    .spinner-overlay.active { display: flex; }
+
+    .spinner-overlay.active {
+      display: flex;
+    }
 
     .spinner {
-      width: 52px; height: 52px;
+      width: 52px;
+      height: 52px;
       border: 3px solid rgba(255, 255, 255, 0.08);
       border-top-color: var(--accent-orange);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     .spinner-text {
       font-size: 0.85rem;
@@ -429,6 +492,7 @@
       flex-direction: column;
       gap: 0.75rem;
     }
+
     .toast {
       display: flex;
       align-items: flex-start;
@@ -446,18 +510,47 @@
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
       animation: toastIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
-    .toast.success { border-left: 3px solid #22c55e; }
-    .toast.error   { border-left: 3px solid #ef4444; }
-    .toast .toast-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
-    .toast.fade-out { animation: toastOut 0.35s ease both; }
+
+    .toast.success {
+      border-left: 3px solid #22c55e;
+    }
+
+    .toast.error {
+      border-left: 3px solid #ef4444;
+    }
+
+    .toast .toast-icon {
+      font-size: 1.2rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .toast.fade-out {
+      animation: toastOut 0.35s ease both;
+    }
 
     @keyframes toastIn {
-      from { opacity: 0; transform: translateX(40px); }
-      to   { opacity: 1; transform: translateX(0); }
+      from {
+        opacity: 0;
+        transform: translateX(40px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
     }
+
     @keyframes toastOut {
-      from { opacity: 1; transform: translateX(0); }
-      to   { opacity: 0; transform: translateX(40px); }
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      to {
+        opacity: 0;
+        transform: translateX(40px);
+      }
     }
 
     /* ================================================================
@@ -469,9 +562,14 @@
       padding: 2rem 0;
       animation: fadeSlideUp 0.6s ease both;
     }
-    .success-state.active { display: block; }
+
+    .success-state.active {
+      display: block;
+    }
+
     .success-state .check-icon {
-      width: 72px; height: 72px;
+      width: 72px;
+      height: 72px;
       margin: 0 auto 1.25rem;
       border-radius: 50%;
       background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
@@ -482,21 +580,30 @@
       font-size: 2rem;
       animation: popIn 0.5s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
+
     @keyframes popIn {
-      from { transform: scale(0); }
-      to   { transform: scale(1); }
+      from {
+        transform: scale(0);
+      }
+
+      to {
+        transform: scale(1);
+      }
     }
+
     .success-state h2 {
       font-size: 1.25rem;
       font-weight: 700;
       color: #22c55e;
       margin-bottom: 0.5rem;
     }
+
     .success-state p {
       color: var(--text-secondary);
       font-size: 0.85rem;
       line-height: 1.6;
     }
+
     .home-btn {
       display: inline-block;
       margin-top: 1.5rem;
@@ -511,6 +618,7 @@
       border-radius: var(--radius-md);
       transition: transform 0.2s ease, box-shadow 0.3s ease;
     }
+
     .home-btn:hover {
       transform: translateY(-2px);
       box-shadow: 0 6px 28px rgba(232, 78, 27, 0.45);
@@ -525,9 +633,11 @@
       padding: 2.25rem 0.5rem;
       animation: fadeSlideUp 0.6s ease both;
     }
+
     .deadline-closed-state.active {
       display: block;
     }
+
     .deadline-closed-state .closed-icon {
       width: 76px;
       height: 76px;
@@ -542,6 +652,7 @@
       box-shadow: 0 0 35px rgba(239, 68, 68, 0.25);
       animation: popIn 0.5s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
+
     .deadline-closed-state h2 {
       font-size: 1.35rem;
       font-weight: 800;
@@ -550,6 +661,7 @@
       letter-spacing: 0.03em;
       text-transform: uppercase;
     }
+
     .deadline-closed-state p {
       color: var(--text-secondary);
       font-size: 0.88rem;
@@ -557,6 +669,7 @@
       max-width: 440px;
       margin: 0 auto;
     }
+
     .deadline-closed-state .closed-sub {
       color: var(--text-muted);
       font-size: 0.78rem;
@@ -572,9 +685,11 @@
       padding: 2.25rem 0.5rem;
       animation: fadeSlideUp 0.6s ease both;
     }
+
     .not-yet-opened-state.active {
       display: block;
     }
+
     .not-yet-opened-state .pending-icon {
       width: 76px;
       height: 76px;
@@ -589,6 +704,7 @@
       box-shadow: 0 0 35px rgba(245, 158, 11, 0.22);
       animation: popIn 0.5s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
+
     .not-yet-opened-state h2 {
       font-size: 1.3rem;
       font-weight: 800;
@@ -597,6 +713,7 @@
       letter-spacing: 0.03em;
       text-transform: uppercase;
     }
+
     .not-yet-opened-state p {
       color: var(--text-secondary);
       font-size: 0.88rem;
@@ -604,6 +721,7 @@
       max-width: 440px;
       margin: 0 auto;
     }
+
     .not-yet-opened-state .pending-sub {
       color: var(--text-muted);
       font-size: 0.78rem;
@@ -618,34 +736,54 @@
       padding: 3rem 0.5rem;
       animation: fadeSlideUp 0.5s ease both;
     }
+
     .page-loading-state .page-spinner {
-      width: 48px; height: 48px;
+      width: 48px;
+      height: 48px;
       margin: 0 auto 1.5rem;
       border: 3px solid rgba(255, 255, 255, 0.08);
       border-top-color: var(--accent-orange);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
+
     .page-loading-state h2 {
       font-size: 1.1rem;
       font-weight: 600;
       color: var(--text-primary);
       margin-bottom: 0.5rem;
     }
+
     .page-loading-state p {
       color: var(--text-muted);
       font-size: 0.82rem;
     }
+
     .page-loading-state .loading-dots::after {
       content: '';
       animation: dots 1.5s steps(4, end) infinite;
     }
+
     @keyframes dots {
-      0%   { content: ''; }
-      25%  { content: '.'; }
-      50%  { content: '..'; }
-      75%  { content: '...'; }
-      100% { content: ''; }
+      0% {
+        content: '';
+      }
+
+      25% {
+        content: '.';
+      }
+
+      50% {
+        content: '..';
+      }
+
+      75% {
+        content: '...';
+      }
+
+      100% {
+        content: '';
+      }
     }
 
     /* ================================================================
@@ -662,9 +800,11 @@
       justify-content: center;
       padding: 1.5rem;
     }
+
     .tnc-overlay.active {
       display: flex;
     }
+
     .tnc-modal {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
@@ -678,6 +818,7 @@
       animation: fadeSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
       overflow: hidden;
     }
+
     .tnc-modal-header {
       padding: 1.25rem 1.5rem;
       border-bottom: 1px solid var(--border-subtle);
@@ -685,15 +826,18 @@
       align-items: center;
       gap: 0.6rem;
     }
+
     .tnc-modal-header .tnc-icon {
       font-size: 1.3rem;
     }
+
     .tnc-modal-header h3 {
       font-size: 1rem;
       font-weight: 700;
       color: var(--text-primary);
       letter-spacing: 0.04em;
     }
+
     .tnc-body {
       flex: 1;
       overflow-y: auto;
@@ -703,32 +847,40 @@
       line-height: 1.7;
       max-height: 45vh;
     }
+
     .tnc-body::-webkit-scrollbar {
       width: 5px;
     }
+
     .tnc-body::-webkit-scrollbar-track {
       background: rgba(255, 255, 255, 0.03);
     }
+
     .tnc-body::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.12);
       border-radius: 10px;
     }
+
     .tnc-body h4 {
       font-size: 0.88rem;
       font-weight: 700;
       color: var(--text-primary);
       margin: 1rem 0 0.5rem;
     }
+
     .tnc-body h4:first-child {
       margin-top: 0;
     }
+
     .tnc-body ul {
       padding-left: 1.2rem;
       margin: 0.4rem 0;
     }
+
     .tnc-body li {
       margin-bottom: 0.35rem;
     }
+
     .tnc-footer {
       padding: 1rem 1.5rem 1.25rem;
       border-top: 1px solid var(--border-subtle);
@@ -736,12 +888,14 @@
       flex-direction: column;
       gap: 0.85rem;
     }
+
     .tnc-checkbox-row {
       display: flex;
       align-items: flex-start;
       gap: 0.65rem;
       cursor: pointer;
     }
+
     .tnc-checkbox-row input[type="checkbox"] {
       appearance: none;
       -webkit-appearance: none;
@@ -756,10 +910,12 @@
       margin-top: 1px;
       transition: border-color 0.2s ease, background 0.2s ease;
     }
+
     .tnc-checkbox-row input[type="checkbox"]:checked {
       background: var(--accent-orange);
       border-color: var(--accent-orange);
     }
+
     .tnc-checkbox-row input[type="checkbox"]:checked::after {
       content: '✓';
       position: absolute;
@@ -770,15 +926,18 @@
       font-size: 0.7rem;
       font-weight: 800;
     }
+
     .tnc-checkbox-row span {
       font-size: 0.78rem;
       color: var(--text-secondary);
       line-height: 1.5;
     }
+
     .tnc-buttons {
       display: flex;
       gap: 0.75rem;
     }
+
     .tnc-cancel-btn {
       flex: 1;
       padding: 0.7rem 1rem;
@@ -792,10 +951,12 @@
       cursor: pointer;
       transition: all 0.2s ease;
     }
+
     .tnc-cancel-btn:hover {
       background: rgba(255, 255, 255, 0.1);
       color: var(--text-primary);
     }
+
     .tnc-ok-btn {
       flex: 1;
       padding: 0.7rem 1rem;
@@ -810,10 +971,12 @@
       cursor: pointer;
       transition: all 0.2s ease;
     }
+
     .tnc-ok-btn:hover:not(:disabled) {
       box-shadow: 0 4px 20px rgba(232, 78, 27, 0.45);
       transform: translateY(-1px);
     }
+
     .tnc-ok-btn:disabled {
       opacity: 0.4;
       cursor: not-allowed;
@@ -828,9 +991,21 @@
       .form-wrapper {
         padding: 2rem 1.25rem 1.75rem;
       }
-      .form-header h1 { font-size: 1.25rem; }
-      .toast { min-width: 260px; max-width: 90vw; }
-      .toast-container { top: 1rem; right: 1rem; left: 1rem; }
+
+      .form-header h1 {
+        font-size: 1.25rem;
+      }
+
+      .toast {
+        min-width: 260px;
+        max-width: 90vw;
+      }
+
+      .toast-container {
+        top: 1rem;
+        right: 1rem;
+        left: 1rem;
+      }
     }
   </style>
 </head>
@@ -867,13 +1042,13 @@
       <!-- Team Name -->
       <div class="field-group">
         <label for="teamName">Team Name <span class="required">*</span></label>
-        <input type="text" id="teamName" name="teamName" placeholder="e.g. CodeCrafters" required />
+        <input type="text" id="teamName" name="teamName" placeholder="e.g. THE_MIND_MESH" required />
       </div>
 
       <!-- Team ID -->
       <div class="field-group">
         <label for="teamId">Team ID <span class="required">*</span></label>
-        <input type="text" id="teamId" name="teamId" placeholder="e.g. NGB-2026-042" required />
+        <input type="text" id="teamId" name="teamId" placeholder="e.g. NGB20###" required />
       </div>
 
       <!-- Email -->
@@ -930,7 +1105,8 @@
       </div>
       <p class="buttons-hint">
         First time submitting? Click <strong>Submit Idea</strong>.<br />
-        Need to update an already submitted presentation? Fill your credentials and click <strong>Resubmit Idea</strong>.
+        Need to update an already submitted presentation? Fill your credentials and click <strong>Resubmit
+          Idea</strong>.
       </p>
     </form>
 
@@ -938,7 +1114,8 @@
     <div class="success-state" id="successState">
       <div class="check-icon">✓</div>
       <h2 id="successTitle">Submission Successfully Completed!</h2>
-      <p id="successMessage">Your idea document has been uploaded and verified. Sit tight and let us wait for the results — good luck to your team! 🚀</p>
+      <p id="successMessage">Your idea document has been uploaded and verified. Sit tight and let us wait for the
+        results — good luck to your team! 🚀</p>
       <a href="https://nextgenbuildathon.vercel.app/" class="home-btn" id="homeBtn">
         ← Return Back to Home
       </a>
@@ -948,8 +1125,10 @@
     <div class="deadline-closed-state" id="deadlineClosedState">
       <div class="closed-icon">⏳</div>
       <h2>Submission Deadline Has Closed</h2>
-      <p>The idea submission portal for NextGen Build-A-Thon 2026 is officially closed. Submissions and resubmissions are no longer accepted.</p>
-      <p class="closed-sub">If your team has already submitted, your presentation is currently under review by our evaluation panel. Good luck! 🚀</p>
+      <p>The idea submission portal for NextGen Build-A-Thon 2026 is officially closed. Submissions and resubmissions
+        are no longer accepted.</p>
+      <p class="closed-sub">If your team has already submitted, your presentation is currently under review by our
+        evaluation panel. Good luck! 🚀</p>
       <a href="https://nextgenbuildathon.vercel.app/" class="home-btn">
         ← Return Back to Home
       </a>
@@ -959,7 +1138,8 @@
     <div class="not-yet-opened-state" id="notYetOpenedState">
       <div class="pending-icon">📅</div>
       <h2>Submission Dates Not Yet Opened</h2>
-      <p>As of now, the submission dates are not yet opened. For any details with respect to submission dates, please recheck the event flow or contact the coordinators.</p>
+      <p>As of now, the submission dates are not yet opened. For any details with respect to submission dates, please
+        recheck the event flow or contact the coordinators.</p>
       <p class="pending-sub">Stay tuned — submission dates will be announced soon! Thank you for your patience. 🙏</p>
       <a href="https://nextgenbuildathon.vercel.app/" class="home-btn">
         ← Return Back to Home
@@ -986,8 +1166,10 @@
       <div class="tnc-body" id="tncBody">
         <h4>1. Eligibility &amp; Submission</h4>
         <ul>
-          <li>Only registered teams with a valid Team ID, Team Secret Code, and Leader Email are authorized to submit.</li>
-          <li>Each team may submit only one idea document per submission cycle. Resubmissions replace the previous document.</li>
+          <li>Only registered teams with a valid Team ID, Team Secret Code, and Leader Email are authorized to submit.
+          </li>
+          <li>Each team may submit only one idea document per submission cycle. Resubmissions replace the previous
+            document.</li>
           <li>Submissions must be made before the announced deadline. Late submissions will not be accepted.</li>
         </ul>
 
@@ -1014,26 +1196,30 @@
 
         <h4>5. Disqualification</h4>
         <ul>
-          <li>Any attempt to tamper with the submission portal, use unauthorized credentials, or submit on behalf of another team will lead to disqualification.</li>
+          <li>Any attempt to tamper with the submission portal, use unauthorized credentials, or submit on behalf of
+            another team will lead to disqualification.</li>
           <li>The organizing committee reserves the right to disqualify any team for violations of these terms.</li>
         </ul>
 
         <h4>6. Privacy &amp; Data</h4>
         <ul>
-          <li>Your submission data (Team Name, Team ID, Email, Domain, and uploaded document) will be stored securely and used only for evaluation purposes.</li>
+          <li>Your submission data (Team Name, Team ID, Email, Domain, and uploaded document) will be stored securely
+            and used only for evaluation purposes.</li>
           <li>By submitting, you consent to the collection and processing of the above data.</li>
         </ul>
 
         <h4>7. Acceptance</h4>
         <ul>
-          <li>By checking the box below and proceeding with your submission, you confirm that you have read, understood, and agreed to all the terms and conditions stated above.</li>
+          <li>By checking the box below and proceeding with your submission, you confirm that you have read, understood,
+            and agreed to all the terms and conditions stated above.</li>
           <li>You also confirm that all information provided is accurate and truthful.</li>
         </ul>
       </div>
       <div class="tnc-footer">
         <label class="tnc-checkbox-row" for="tncAgreeCheckbox">
           <input type="checkbox" id="tncAgreeCheckbox" />
-          <span>I have read and agree to the <strong>Terms &amp; Conditions</strong> of NextGen Build-A-Thon 2026.</span>
+          <span>I have read and agree to the <strong>Terms &amp; Conditions</strong> of NextGen Build-A-Thon
+            2026.</span>
         </label>
         <div class="tnc-buttons">
           <button type="button" class="tnc-cancel-btn" id="tncCancelBtn">Cancel</button>
@@ -1052,18 +1238,18 @@
     // ---------------------------------------------------------------
     // DOM References
     // ---------------------------------------------------------------
-    const form                = document.getElementById('submissionForm');
-    const submitBtn           = document.getElementById('submitBtn');
-    const resubmitBtn         = document.getElementById('resubmitBtn');
-    const spinnerOverlay      = document.getElementById('spinnerOverlay');
-    const spinnerText         = document.getElementById('spinnerText');
-    const toastContainer      = document.getElementById('toastContainer');
-    const fileInput           = document.getElementById('ideaFile');
-    const fileLabel           = document.getElementById('fileLabel');
-    const fileNameSpan        = document.getElementById('fileName');
-    const successState        = document.getElementById('successState');
-    const successTitle        = document.getElementById('successTitle');
-    const successMessage      = document.getElementById('successMessage');
+    const form = document.getElementById('submissionForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const resubmitBtn = document.getElementById('resubmitBtn');
+    const spinnerOverlay = document.getElementById('spinnerOverlay');
+    const spinnerText = document.getElementById('spinnerText');
+    const toastContainer = document.getElementById('toastContainer');
+    const fileInput = document.getElementById('ideaFile');
+    const fileLabel = document.getElementById('fileLabel');
+    const fileNameSpan = document.getElementById('fileName');
+    const successState = document.getElementById('successState');
+    const successTitle = document.getElementById('successTitle');
+    const successMessage = document.getElementById('successMessage');
     const deadlineClosedState = document.getElementById('deadlineClosedState');
 
     // Max file size: 10 MB
@@ -1113,7 +1299,7 @@
     function readFileAsBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload  = () => {
+        reader.onload = () => {
           const base64 = reader.result.split(',')[1];
           resolve(base64);
         };
@@ -1125,12 +1311,12 @@
     // ---------------------------------------------------------------
     // Switch UI to "Submission Deadline Has Closed"
     // ---------------------------------------------------------------
-    const notYetOpenedState   = document.getElementById('notYetOpenedState');
-    const pageLoadingState    = document.getElementById('pageLoadingState');
-    const tncOverlay          = document.getElementById('tncOverlay');
-    const tncCheckbox         = document.getElementById('tncAgreeCheckbox');
-    const tncOkBtn            = document.getElementById('tncOkBtn');
-    const tncCancelBtn        = document.getElementById('tncCancelBtn');
+    const notYetOpenedState = document.getElementById('notYetOpenedState');
+    const pageLoadingState = document.getElementById('pageLoadingState');
+    const tncOverlay = document.getElementById('tncOverlay');
+    const tncCheckbox = document.getElementById('tncAgreeCheckbox');
+    const tncOkBtn = document.getElementById('tncOkBtn');
+    const tncCancelBtn = document.getElementById('tncCancelBtn');
 
     // Track which action triggered T&C ('submit' or 'resubmit')
     let pendingTncAction = null;
@@ -1193,12 +1379,12 @@
       const isResubmit = (action === 'resubmit');
 
       // Gather input values
-      const teamName   = document.getElementById('teamName').value.trim();
-      const teamId     = document.getElementById('teamId').value.trim();
-      const email      = document.getElementById('email').value.trim();
-      const domain     = document.getElementById('domain').value;
+      const teamName = document.getElementById('teamName').value.trim();
+      const teamId = document.getElementById('teamId').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const domain = document.getElementById('domain').value;
       const secretCode = document.getElementById('secretCode').value.trim();
-      const files      = fileInput.files;
+      const files = fileInput.files;
 
       // ----- FRONTEND VALIDATIONS -----
       if (!teamName || !teamId || !email || !secretCode || !domain) {
@@ -1239,7 +1425,7 @@
       }
 
       // ----- LOCK BUTTONS & SHOW SPINNER -----
-      submitBtn.disabled   = true;
+      submitBtn.disabled = true;
       resubmitBtn.disabled = true;
 
       spinnerText.textContent = isResubmit
@@ -1251,12 +1437,12 @@
         const fileBase64 = await readFileAsBase64(file);
 
         const payload = {
-          teamName:   teamName || '',
+          teamName: teamName || '',
           teamId,
           email,
-          domain:     domain || '',
+          domain: domain || '',
           secretCode,
-          fileName:   file.name,
+          fileName: file.name,
           fileBase64,
           action      // 'submit' or 'resubmit'
         };
@@ -1300,10 +1486,10 @@
           // Customize success message
           if (result.isResubmit || isResubmit) {
             const countText = result.resubmissionCount ? ` (Resubmission #${result.resubmissionCount})` : '';
-            successTitle.textContent   = `Idea Document Resubmitted Successfully!${countText}`;
+            successTitle.textContent = `Idea Document Resubmitted Successfully!${countText}`;
             successMessage.textContent = 'Your idea presentation has been replaced and updated in our submission records. Sit tight and let us wait for the results — good luck to your team! 🚀';
           } else {
-            successTitle.textContent   = 'Submission Successfully Completed!';
+            successTitle.textContent = 'Submission Successfully Completed!';
             successMessage.textContent = 'Your idea document has been uploaded and verified. Sit tight and let us wait for the results — good luck to your team! 🚀';
           }
 
@@ -1312,14 +1498,14 @@
           successState.classList.add('active');
         } else {
           showToast(result.message || 'Submission failed. Please try again.');
-          submitBtn.disabled   = false;
+          submitBtn.disabled = false;
           resubmitBtn.disabled = false;
         }
 
       } catch (err) {
         spinnerOverlay.classList.remove('active');
         showToast('Network error: ' + err.message);
-        submitBtn.disabled   = false;
+        submitBtn.disabled = false;
         resubmitBtn.disabled = false;
       }
     }
@@ -1361,12 +1547,12 @@
     // ---------------------------------------------------------------
     submitBtn.addEventListener('click', () => {
       // Validate fields first before showing T&C
-      const teamName   = document.getElementById('teamName').value.trim();
-      const teamId     = document.getElementById('teamId').value.trim();
-      const email      = document.getElementById('email').value.trim();
-      const domain     = document.getElementById('domain').value;
+      const teamName = document.getElementById('teamName').value.trim();
+      const teamId = document.getElementById('teamId').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const domain = document.getElementById('domain').value;
       const secretCode = document.getElementById('secretCode').value.trim();
-      const files      = fileInput.files;
+      const files = fileInput.files;
 
       if (!teamName || !teamId || !email || !secretCode || !domain) {
         showToast('Please fill in all credentials before submitting.');
@@ -1390,12 +1576,12 @@
 
     resubmitBtn.addEventListener('click', () => {
       // Validate fields first before showing T&C
-      const teamName   = document.getElementById('teamName').value.trim();
-      const teamId     = document.getElementById('teamId').value.trim();
-      const email      = document.getElementById('email').value.trim();
-      const domain     = document.getElementById('domain').value;
+      const teamName = document.getElementById('teamName').value.trim();
+      const teamId = document.getElementById('teamId').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const domain = document.getElementById('domain').value;
       const secretCode = document.getElementById('secretCode').value.trim();
-      const files      = fileInput.files;
+      const files = fileInput.files;
 
       if (!teamName || !teamId || !email || !secretCode || !domain) {
         showToast('Please fill in all credentials before resubmitting.');
@@ -1424,4 +1610,5 @@
     });
   </script>
 </body>
+
 </html>
